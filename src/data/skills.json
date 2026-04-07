@@ -1,0 +1,20 @@
+[
+  {
+    "id" : "culinary_01",
+    "professional_title" : "Commercial Food Preperations",
+    "Keywords" : ["cooking", "cleaning dishes", "cutting vegetables", "recipe", "serving food"],
+    "category" : "Hospitality"
+  },
+  {
+    "id" : "maintaenance_01",
+    "professional_title" : "Facility Maintenance & Repair",
+    "Keywords" : ["cleaning", "fixing leaks", "painting walls", "repairing", "maintenance", "changing bulbs", "mending fences", "basic plumbing","drilling"],
+    "category" : "Trade Services"
+  },
+  {
+    "id" : "logistics_01",
+    "professional_title": "Inventory & Delivery Management",
+    "Keywords" : ["carrying heavy boxes", "driving van", "organizing shelves", "loading and unloading", "delivery", "packing orders", "using scanner"],
+    "category" : "Logistics & Transport"
+  }
+]
