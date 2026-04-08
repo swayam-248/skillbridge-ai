@@ -1,20 +1,552 @@
 [
   {
-    "id" : "culinary_01",
-    "professional_title" : "Commercial Food Preperations",
-    "Keywords" : ["cooking", "cleaning dishes", "cutting vegetables", "recipe", "serving food"],
-    "category" : "Hospitality"
+    "id": "culinary_01",
+    "professional_title": "Commercial Food Preparation",
+    "keywords": [
+      "cooking",
+      "cleaning dishes",
+      "cutting vegetables",
+      "recipe",
+      "serving food"
+    ],
+    "category": "Hospitality"
   },
   {
-    "id" : "maintaenance_01",
-    "professional_title" : "Facility Maintenance & Repair",
-    "Keywords" : ["cleaning", "fixing leaks", "painting walls", "repairing", "maintenance", "changing bulbs", "mending fences", "basic plumbing","drilling"],
-    "category" : "Trade Services"
+    "id": "maintenance_01",
+    "professional_title": "Facility Maintenance & Repair",
+    "keywords": [
+      "cleaning",
+      "fixing leaks",
+      "painting walls",
+      "repairing",
+      "maintenance",
+      "changing bulbs",
+      "mending fences",
+      "basic plumbing",
+      "drilling"
+    ],
+    "category": "Trade Services"
   },
   {
-    "id" : "logistics_01",
+    "id": "logistics_01",
     "professional_title": "Inventory & Delivery Management",
-    "Keywords" : ["carrying heavy boxes", "driving van", "organizing shelves", "loading and unloading", "delivery", "packing orders", "using scanner"],
-    "category" : "Logistics & Transport"
+    "keywords": [
+      "carrying heavy boxes",
+      "driving van",
+      "organizing shelves",
+      "loading and unloading",
+      "delivery",
+      "packing orders",
+      "using scanner"
+    ],
+    "category": "Logistics & Transport"
+  },
+  {
+    "id": "logistics_04",
+    "professional_title": "Heavy Loading & Warehouse Logistics",
+    "keywords": [
+      "heavy lifting",
+      "forklift operation",
+      "loading docks",
+      "warehouse safety",
+      "pallet management",
+      "freight handling"
+    ],
+    "category": "Logistics & Transport"
+  },
+  {
+    "id": "culinary_02",
+    "professional_title": "Food Service & Customer Support",
+    "keywords": [
+      "taking orders",
+      "serving customers",
+      "cleaning tables",
+      "handling payments",
+      "food safety",
+      "preparing drinks"
+    ],
+    "category": "Hospitality"
+  },
+  {
+    "id": "sanitation_01",
+    "professional_title": "Commercial Cleaning & Sanitation",
+    "keywords": [
+      "mopping floors",
+      "sanitizing surfaces",
+      "cleaning restrooms",
+      "waste disposal",
+      "using cleaning chemicals",
+      "vacuuming"
+    ],
+    "category": "Cleaning Services"
+  },
+  {
+    "id": "retail_01",
+    "professional_title": "Retail Sales & Customer Service",
+    "keywords": [
+      "operating cash register",
+      "assisting customers",
+      "stocking shelves",
+      "handling payments",
+      "answering questions",
+      "tidying displays"
+    ],
+    "category": "Retail"
+  },
+  {
+    "id": "retail_02",
+    "professional_title": "Retail Stock & Inventory Management",
+    "keywords": [
+      "receiving shipments",
+      "organizing stockroom",
+      "checking inventory levels",
+      "tagging items",
+      "restocking shelves",
+      "using inventory software"
+    ],
+    "category": "Retail"
+  },
+  {
+    "id": "cleaning_02",
+    "professional_title": "Residential Cleaning Services",
+    "keywords": [
+      "cleaning houses",
+      "dusting furniture",
+      "mopping floors",
+      "cleaning bathrooms",
+      "vacuuming carpets",
+      "tidying rooms"
+    ],
+    "category": "Cleaning Services"
+  },
+  {
+    "id": "landscaping_01",
+    "professional_title": "Lawn Care & Gardening",
+    "keywords": [
+      "mowing lawns",
+      "weeding gardens",
+      "trimming hedges",
+      "planting flowers",
+      "raking leaves",
+      "watering plants"
+    ],
+    "category": "Landscaping"
+  },
+  {
+    "id": "cleaning_03",
+    "professional_title": "Commercial Kitchen Cleaning",
+    "keywords": [
+      "cleaning kitchen equipment",
+      "sanitizing food prep areas",
+      "cleaning ovens",
+      "washing dishes",
+      "maintaining hygiene standards",
+      "waste management"
+    ],
+    "category": "Cleaning Services"
+  },
+  {
+    "id": "cleaning_04",
+    "professional_title": "Window Cleaning Services",
+    "keywords": [
+      "cleaning windows",
+      "removing smudges",
+      "cleaning window frames",
+      "using squeegee",
+      "working at heights",
+      "cleaning glass surfaces"
+    ],
+    "category": "Cleaning Services"
+  },
+  {
+    "id": "agri_01",
+    "professional_title": "Farm & Crop Maintenance",
+    "keywords": [
+      "planting seeds",
+      "weeding fields",
+      "harvesting crops",
+      "using farm tools",
+      "watering plants",
+      "fertilizing soil"
+    ],
+    "category": "Agriculture"
+  },
+  {
+    "id": "agri_02",
+    "professional_title": "Livestock Care & Management",
+    "keywords": [
+      "feeding animals",
+      "cleaning animal pens",
+      "collecting eggs",
+      "milking cows",
+      "monitoring animal health",
+      "grooming livestock"
+    ],
+    "category": "Agriculture"
+  },
+  {
+    "id": "agri_03",
+    "professional_title": "Farm Equipment Operation",
+    "keywords": [
+      "operating tractor",
+      "using farm machinery",
+      "plowing fields",
+      "hauling crops",
+      "basic equipment maintenance",
+      "driving farm vehicles"
+    ],
+    "category": "Agriculture"
+  },
+  {
+    "id": "agri_04",
+    "professional_title": "Farm Labor & Harvesting",
+    "keywords": [
+      "picking fruits",
+      "harvesting vegetables",
+      "sorting produce",
+      "packing crops",
+      "manual farm labor",
+      "field work"
+    ],
+    "category": "Agriculture"
+  },
+  {
+    "id": "trade_01",
+    "professional_title": "General Handyman Services",
+    "keywords": [
+      "fixing leaks",
+      "painting walls",
+      "repairing",
+      "maintenance",
+      "changing bulbs",
+      "mending fences",
+      "basic plumbing",
+      "drilling"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_02",
+    "professional_title": "Carpentry & Woodworking",
+    "keywords": [
+      "building shelves",
+      "installing doors",
+      "repairing furniture",
+      "framing structures",
+      "measuring wood",
+      "using saws"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_03",
+    "professional_title": "Painting & Decorating",
+    "keywords": [
+      "painting walls",
+      "preparing surfaces",
+      "using paint brushes",
+      "cleaning paint tools",
+      "applying primer",
+      "decorating rooms"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_04",
+    "professional_title": "Plumbing & Pipe Fitting",
+    "keywords": [
+      "fixing leaks",
+      "installing pipes",
+      "repairing faucets",
+      "clearing drains",
+      "using wrenches",
+      "water system maintenance"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_05",
+    "professional_title": "Electrical Work & Wiring",
+    "keywords": [
+      "installing lights",
+      "repairing wiring",
+      "fixing outlets",
+      "using electrical tools",
+      "safety inspections",
+      "circuit breakers"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_06",
+    "professional_title": "Masonry & Bricklaying",
+    "keywords": [
+      "laying bricks",
+      "mixing cement",
+      "building walls",
+      "repairing masonry",
+      "using trowel",
+      "stonework"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_07",
+    "professional_title": "Tiling & Flooring Installation",
+    "keywords": [
+      "laying tiles",
+      "cutting tiles",
+      "applying grout",
+      "installing flooring",
+      "preparing surfaces",
+      "tile repair"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_08",
+    "professional_title": "Welding & Metal Fabrication",
+    "keywords": [
+      "welding metal",
+      "cutting steel",
+      "joining metal parts",
+      "using welding equipment",
+      "metal fabrication",
+      "repairing metal structures"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_09",
+    "professional_title": "HVAC & Refrigeration",
+    "keywords": [
+      "repairing air conditioners",
+      "installing heating systems",
+      "refrigeration maintenance",
+      "using HVAC tools",
+      "system diagnostics",
+      "cleaning filters"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_10",
+    "professional_title": "Appliance Repair Services",
+    "keywords": [
+      "fixing refrigerators",
+      "repairing washing machines",
+      "oven repair",
+      "appliance maintenance",
+      "diagnosing electrical issues",
+      "replacing parts"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_11",
+    "professional_title": "Roofing & Waterproofing",
+    "keywords": [
+      "repairing roofs",
+      "installing shingles",
+      "waterproofing surfaces",
+      "working at heights",
+      "roof maintenance",
+      "sealing leaks"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_12",
+    "professional_title": "Glass & Glazing Services",
+    "keywords": [
+      "installing glass",
+      "repairing windows",
+      "cutting glass",
+      "sealing frames",
+      "replacing glass panes",
+      "window maintenance"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_13",
+    "professional_title": "Pest Control Services",
+    "keywords": [
+      "spraying pesticides",
+      "setting traps",
+      "pest identification",
+      "fumigation",
+      "rodent control",
+      "insect extermination"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_14",
+    "professional_title": "Pool & Spa Maintenance",
+    "keywords": [
+      "cleaning pools",
+      "testing water chemistry",
+      "repairing pumps",
+      "maintaining filters",
+      "pool maintenance",
+      "chemical balancing"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_15",
+    "professional_title": "Security Systems Installation & Repair",
+    "keywords": [
+      "installing cameras",
+      "repairing security systems",
+      "setting alarms",
+      "access control systems",
+      "system maintenance",
+      "wiring security devices"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_16",
+    "professional_title": "Elevator & Escalator Maintenance",
+    "keywords": [
+      "elevator repair",
+      "escalator maintenance",
+      "safety inspections",
+      "system diagnostics",
+      "replacing parts",
+      "technical troubleshooting"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_17",
+    "professional_title": "Industrial Equipment Repair",
+    "keywords": [
+      "machine repair",
+      "equipment maintenance",
+      "technical troubleshooting",
+      "using industrial tools",
+      "safety inspections",
+      "system diagnostics"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_18",
+    "professional_title": "Vehicle & Equipment Maintenance",
+    "keywords": [
+      "vehicle repair",
+      "equipment maintenance",
+      "using mechanical tools",
+      "safety inspections",
+      "system diagnostics",
+      "preventive maintenance"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_19",
+    "professional_title": "Construction Labor & Site Work",
+    "keywords": [
+      "manual labor",
+      "site preparation",
+      "assisting tradespeople",
+      "material handling",
+      "basic construction tasks",
+      "site cleanup"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_20",
+    "professional_title": "Demolition & Waste Removal",
+    "keywords": [
+      "demolition work",
+      "waste removal",
+      "site cleanup",
+      "material sorting",
+      "using demolition tools",
+      "safety procedures"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_21",
+    "professional_title": "Water Treatment & Plumbing Systems",
+    "keywords": [
+      "water treatment",
+      "plumbing systems",
+      "system maintenance",
+      "technical troubleshooting",
+      "safety inspections",
+      "water quality testing"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_22",
+    "professional_title": "Fire Safety & Sprinkler Systems",
+    "keywords": [
+      "fire safety",
+      "sprinkler systems",
+      "system maintenance",
+      "technical troubleshooting",
+      "safety inspections",
+      "emergency response"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_23",
+    "professional_title": "Paving & Road Maintenance",
+    "keywords": [
+      "paving roads",
+      "road maintenance",
+      "using paving equipment",
+      "safety procedures",
+      "material handling",
+      "site cleanup"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_24",
+    "professional_title": "Fencing & Gate Installation",
+    "keywords": [
+      "installing fences",
+      "repairing fences",
+      "gate installation",
+      "using fencing tools",
+      "safety procedures",
+      "material handling"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_25",
+    "professional_title": "Irrigation & Sprinkler Systems",
+    "keywords": [
+      "installing irrigation",
+      "repairing sprinklers",
+      "system maintenance",
+      "technical troubleshooting",
+      "safety inspections",
+      "water conservation"
+    ],
+    "category": "Trade Services"
+  },
+  {
+    "id": "trade_26",
+    "professional_title": "Drainage & Sewer Systems",
+    "keywords": [
+      "drainage systems",
+      "sewer maintenance",
+      "system diagnostics",
+      "technical troubleshooting",
+      "safety inspections"
+    ],
+    "category": "Trade Services"
   }
 ]

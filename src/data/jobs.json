@@ -1,0 +1,317 @@
+[
+  {
+    "job_id": "job_004",
+    "role_name": "Senior Field Supervisor",
+    "required_skills": ["agri_01", "agri_02", "agri_03"],
+    "min_trust_score": 75,
+    "description": "Oversee crop maintenance, livestock health, and machinery operations on a commercial farm."
+  },
+  {
+    "job_id": "job_005",
+    "role_name": "Commercial Kitchen Steward",
+    "required_skills": ["culinary_01", "cleaning_03", "sanitation_01"],
+    "min_trust_score": 55,
+    "description": "Maintain kitchen sanitation standards and assist with basic food preparation in a high-volume environment."
+  },
+  {
+    "job_id": "job_006",
+    "role_name": "Property Maintenance Technician",
+    "required_skills": ["trade_01", "trade_03", "trade_04", "trade_05"],
+    "min_trust_score": 70,
+    "description": "Handle diverse repairs including painting, plumbing, and basic electrical wiring for residential complexes."
+  },
+  {
+    "job_id": "job_007",
+    "role_name": "Cold Chain Logistics Assistant",
+    "required_skills": ["logistics_01", "trade_09"],
+    "min_trust_score": 65,
+    "description": "Manage inventory in refrigerated environments and perform basic maintenance on HVAC systems."
+  },
+  {
+    "job_id": "job_008",
+    "role_name": "Hospital Environmental Services Lead",
+    "required_skills": ["sanitation_01", "trade_13", "trade_22"],
+    "min_trust_score": 80,
+    "description": "Ensure sterile conditions, manage pest control, and monitor fire safety systems in a clinical setting."
+  },
+  {
+    "job_id": "job_009",
+    "role_name": "Urban Infrastructure Worker",
+    "required_skills": ["trade_23", "trade_26", "trade_11"],
+    "min_trust_score": 60,
+    "description": "Perform road maintenance, drainage clearing, and roofing repairs for city projects."
+  },
+  {
+    "job_id": "job_010",
+    "role_name": "Retail Operations Coordinator",
+    "required_skills": ["retail_01", "retail_02", "logistics_01"],
+    "min_trust_score": 70,
+    "description": "Manage front-of-house sales while overseeing stockroom inventory and shipment receiving."
+  },
+  {
+    "job_id": "job_011",
+    "role_name": "Security & Access Technician",
+    "required_skills": ["trade_15", "trade_05"],
+    "min_trust_score": 85,
+    "description": "Install and repair camera systems and electronic access controls."
+  },
+  {
+    "job_id": "job_012",
+    "role_name": "Residential Landscape Architect Assistant",
+    "required_skills": ["landscaping_01", "trade_06", "trade_25"],
+    "min_trust_score": 65,
+    "description": "Execute garden designs including masonry work and automatic irrigation installation."
+  },
+  {
+    "job_id": "job_013",
+    "role_name": "Industrial Site Safety Marshal",
+    "required_skills": ["trade_19", "trade_20", "trade_22"],
+    "min_trust_score": 90,
+    "description": "Oversee site cleanup, safe demolition practices, and fire safety compliance."
+  },
+  {
+    "job_id": "job_014",
+    "role_name": "Water Systems Operator",
+    "required_skills": ["trade_21", "trade_04", "trade_26"],
+    "min_trust_score": 75,
+    "description": "Monitor water treatment quality and maintain municipal plumbing and sewer systems."
+  },
+  {
+    "job_id": "job_015",
+    "role_name": "Warehouse Safety & Maintenance Lead",
+    "required_skills": ["logistics_04", "maintenance_01", "trade_17"],
+    "min_trust_score": 80,
+    "description": "Manage heavy loading operations while performing repairs on industrial equipment."
+  },
+  {
+    "job_id": "job_016",
+    "role_name": "Commercial Kitchen Steward",
+    "required_skills": ["culinary_01", "cleaning_03", "sanitation_01"],
+    "min_trust_score": 55,
+    "description": "Maintain kitchen sanitation standards and assist with basic food preparation in a high-volume environment."
+  },
+  {
+    "job_id": "job_017",
+    "role_name": "Property Maintenance Technician",
+    "required_skills": ["trade_01", "trade_03", "trade_04", "trade_05"],
+    "min_trust_score": 70,
+    "description": "Handle diverse repairs including painting, plumbing, and basic electrical wiring for residential complexes."
+  },
+  {
+    "job_id": "job_018",
+    "role_name": "Cold Chain Logistics Assistant",
+    "required_skills": ["logistics_01", "trade_09"],
+    "min_trust_score": 65,
+    "description": "Manage inventory in refrigerated environments and perform basic maintenance on HVAC systems."
+  },
+  {
+    "job_id": "job_019",
+    "role_name": "Hospital Environmental Services Lead",
+    "required_skills": ["sanitation_01", "trade_13", "trade_22"],
+    "min_trust_score": 80,
+    "description": "Ensure sterile conditions, manage pest control, and monitor fire safety systems in a clinical setting."
+  },
+  {
+    "job_id": "job_020",
+    "role_name": "Urban Infrastructure Worker",
+    "required_skills": ["trade_23", "trade_26", "trade_11"],
+    "min_trust_score": 60,
+    "description": "Perform road maintenance, drainage clearing, and roofing repairs for city projects."
+  },
+  {
+    "job_id": "job_021",
+    "role_name": "Retail Operations Coordinator",
+    "required_skills": ["retail_01", "retail_02", "logistics_01"],
+    "min_trust_score": 70,
+    "description": "Manage front-of-house sales while overseeing stockroom inventory and shipment receiving."
+  },
+  {
+    "job_id": "job_022",
+    "role_name": "Security & Access Technician",
+    "required_skills": ["trade_15", "trade_05"],
+    "min_trust_score": 85,
+    "description": "Install and repair camera systems and electronic access controls."
+  },
+  {
+    "job_id": "job_023",
+    "role_name": "Residential Landscape Architect Assistant",
+    "required_skills": ["landscaping_01", "trade_06", "trade_25"],
+    "min_trust_score": 65,
+    "description": "Execute garden designs including masonry work and automatic irrigation installation."
+  },
+  {
+    "job_id": "job_024",
+    "role_name": "Industrial Site Safety Marshal",
+    "required_skills": ["trade_19", "trade_20", "trade_22"],
+    "min_trust_score": 90,
+    "description": "Oversee site cleanup, safe demolition practices, and fire safety compliance."
+  },
+  {
+    "job_id": "job_025",
+    "role_name": "Water Systems Operator",
+    "required_skills": ["trade_21", "trade_04", "trade_26"],
+    "min_trust_score": 75,
+    "description": "Monitor water treatment quality and maintain municipal plumbing and sewer systems."
+  },
+  {
+    "job_id": "job_026",
+    "role_name": "Warehouse Safety & Maintenance Lead",
+    "required_skills": ["logistics_04", "maintenance_01", "trade_17"],
+    "min_trust_score": 80,
+    "description": "Manage heavy loading operations while performing repairs on industrial equipment."
+  },
+  {
+    "job_id": "job_027",
+    "role_name": "Commercial Kitchen Steward",
+    "required_skills": ["culinary_01", "cleaning_03", "sanitation_01"],
+    "min_trust_score": 55,
+    "description": "Maintain kitchen sanitation standards and assist with basic food preparation in a high-volume environment."
+  },
+  {
+    "job_id": "job_028",
+    "role_name": "Property Maintenance Technician",
+    "required_skills": ["trade_01", "trade_03", "trade_04", "trade_05"],
+    "min_trust_score": 70,
+    "description": "Handle diverse repairs including painting, plumbing, and basic electrical wiring for residential complexes."
+  },
+  {
+    "job_id": "job_029",
+    "role_name": "Cold Chain Logistics Assistant",
+    "required_skills": ["logistics_01", "trade_09"],
+    "min_trust_score": 65,
+    "description": "Manage inventory in refrigerated environments and perform basic maintenance on HVAC systems."
+  },
+  {
+    "job_id": "job_030",
+    "role_name": "Hospital Environmental Services Lead",
+    "required_skills": ["sanitation_01", "trade_13", "trade_22"],
+    "min_trust_score": 80,
+    "description": "Ensure sterile conditions, manage pest control, and monitor fire safety systems in a clinical setting."
+  },
+  {
+    "job_id": "job_031",
+    "role_name": "Urban Infrastructure Worker",
+    "required_skills": ["trade_23", "trade_26", "trade_11"],
+    "min_trust_score": 60,
+    "description": "Perform road maintenance, drainage clearing, and roofing repairs for city projects."
+  },
+  {
+    "job_id": "job_032",
+    "role_name": "Retail Operations Coordinator",
+    "required_skills": ["retail_01", "retail_02", "logistics_01"],
+    "min_trust_score": 70,
+    "description": "Manage front-of-house sales while overseeing stockroom inventory and shipment receiving."
+  },
+  {
+    "job_id": "job_033",
+    "role_name": "Security & Access Technician",
+    "required_skills": ["trade_15", "trade_05"],
+    "min_trust_score": 85,
+    "description": "Install and repair camera systems and electronic access controls."
+  },
+  {
+    "job_id": "job_034",
+    "role_name": "Residential Landscape Architect Assistant",
+    "required_skills": ["landscaping_01", "trade_06", "trade_25"],
+    "min_trust_score": 65,
+    "description": "Execute garden designs including masonry work and automatic irrigation installation."
+  },
+  {
+    "job_id": "job_035",
+    "role_name": "Industrial Site Safety Marshal",
+    "required_skills": ["trade_19", "trade_20", "trade_22"],
+    "min_trust_score": 90,
+    "description": "Oversee site cleanup, safe demolition practices, and fire safety compliance."
+  },
+  {
+    "job_id": "job_036",
+    "role_name": "Water Systems Operator",
+    "required_skills": ["trade_21", "trade_04", "trade_26"],
+    "min_trust_score": 75,
+    "description": "Monitor water treatment quality and maintain municipal plumbing and sewer systems."
+  },
+  {
+    "job_id": "job_037",
+    "role_name": "Warehouse Safety & Maintenance Lead",
+    "required_skills": ["logistics_04", "maintenance_01", "trade_17"],
+    "min_trust_score": 80,
+    "description": "Manage heavy loading operations while performing repairs on industrial equipment."
+  },
+  {
+    "job_id": "job_038",
+    "role_name": "Commercial Kitchen Steward",
+    "required_skills": ["culinary_01", "cleaning_03", "sanitation_01"],
+    "min_trust_score": 55,
+    "description": "Maintain kitchen sanitation standards and assist with basic food preparation in a high-volume environment."
+  },
+  {
+    "job_id": "job_039",
+    "role_name": "Property Maintenance Technician",
+    "required_skills": ["trade_01", "trade_03", "trade_04", "trade_05"],
+    "min_trust_score": 70,
+    "description": "Handle diverse repairs including painting, plumbing, and basic electrical wiring for residential complexes."
+  },
+  {
+    "job_id": "job_040",
+    "role_name": "Cold Chain Logistics Assistant",
+    "required_skills": ["logistics_01", "trade_09"],
+    "min_trust_score": 65,
+    "description": "Manage inventory in refrigerated environments and perform basic maintenance on HVAC systems."
+  },
+  {
+    "job_id": "job_041",
+    "role_name": "Hospital Environmental Services Lead",
+    "required_skills": ["sanitation_01", "trade_13", "trade_22"],
+    "min_trust_score": 80,
+    "description": "Ensure sterile conditions, manage pest control, and monitor fire safety systems in a clinical setting."
+  },
+  {
+    "job_id": "job_042",
+    "role_name": "Urban Infrastructure Worker",
+    "required_skills": ["trade_23", "trade_26", "trade_11"],
+    "min_trust_score": 60,
+    "description": "Perform road maintenance, drainage clearing, and roofing repairs for city projects."
+  },
+  {
+    "job_id": "job_043",
+    "role_name": "Retail Operations Coordinator",
+    "required_skills": ["retail_01", "retail_02", "logistics_01"],
+    "min_trust_score": 70,
+    "description": "Manage front-of-house sales while overseeing stockroom inventory and shipment receiving."
+  },
+  {
+    "job_id": "job_044",
+    "role_name": "Security & Access Technician",
+    "required_skills": ["trade_15", "trade_05"],
+    "min_trust_score": 85,
+    "description": "Install and repair camera systems and electronic access controls."
+  },
+  {
+    "job_id": "job_045",
+    "role_name": "Residential Landscape Architect Assistant",
+    "required_skills": ["landscaping_01", "trade_06", "trade_25"],
+    "min_trust_score": 65,
+    "description": "Execute garden designs including masonry work and automatic irrigation installation."
+  },
+  {
+    "job_id": "job_046",
+    "role_name": "Industrial Site Safety Marshal",
+    "required_skills": ["trade_19", "trade_20", "trade_22"],
+    "min_trust_score": 90,
+    "description": "Oversee site cleanup, safe demolition practices, and fire safety compliance."
+  },
+  {
+    "job_id": "job_047",
+    "role_name": "Water Systems Operator",
+    "required_skills": ["trade_21", "trade_04", "trade_26"],
+    "min_trust_score": 75,
+    "description": "Monitor water treatment quality and maintain municipal plumbing and sewer systems."
+  },
+  {
+    "job_id": "job_048",
+    "role_name": "Warehouse Safety & Maintenance Lead",
+    "required_skills": ["logistics_04", "maintenance_01", "trade_17"],
+    "min_trust_score": 80,
+    "description": "Manage heavy loading operations while performing repairs on industrial equipment."
+  }
+]
