@@ -18,4 +18,4 @@ A platform that converts daily life activities into verified professional skill 
 ## 📅 Progress Log
 - [x] **Day 1:** Environment setup and professional folder architecture.
 - [x] **Day 2:** Data Engineering: Built a 47-category skill library and 15-role job database. Verified relational mapping via Antigravity Audit.
-- [ ] **Day 3:** NLP Logic Integration (Natural Language Processing).
+- [x] **Day 3:** NLP Logic Integration. Built a custom matching engine using `compromise` and Regex to handle colloquial user input.
