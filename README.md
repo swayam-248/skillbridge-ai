@@ -1,47 +1,38 @@
-SkillBridge AI 🧾
-Status: 🏗️ Phase 2: Backend Infrastructure & Data Persistence (Day 6/25)
+# 🛰️ SkillBridge AI
+> **"Turning spoken experience into professional opportunity."**
 
-🎯 Project Vision
-A voice-first, two-sided marketplace that converts colloquial spoken experience into professional skill profiles, connecting active workers to local job opportunities in real-time.
+**Status:** 🏗️ Phase 2: Backend Infrastructure & Data Persistence  
+**Timeline:** Day 6 of 25  
+**Current Sprint:** Transitioning from Prototype to Data-Driven System
 
-📊 Knowledge Base Status
-Skill Taxonomy: 47 professional categories now hosted in MongoDB.
+---
 
-Industry Sectors: Agriculture, Trade Services, Hospitality, Logistics, Cleaning, Retail, and Landscaping.
+### 🎯 Project Vision
+A voice-first, two-sided marketplace designed to bridge the gap between colloquial work experience and formal industry standards. We empower informal workers by converting their spoken history into a verifiable, professional skill profile.
 
-Data Integrity: Migrated from Relational JSON to NoSQL Document Storage.
+---
 
-🛠️ Tech Stack (Full-Stack)
-Frontend: React.js (Vite) + Tailwind CSS
+### 📊 Knowledge Base & Data Integrity
+* **Skill Taxonomy:** 47 professional categories now fully migrated to **MongoDB**.
+* **Industry Domains:** * `Agriculture`, `Trade Services`, `Hospitality`, `Logistics & Transport`
+    * `Cleaning Services`, `Retail`, `Landscaping`
+* **Storage Architecture:** Transitioned from static JSON files to **Mongoose Schemas** (NoSQL) for high-speed relational queries.
 
-Backend: Node.js + Express.js
+---
 
-Database: MongoDB (Local Instance)
+### 🛠️ Tech Stack
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend** | React (Vite) + Tailwind CSS |
+| **Backend** | Node.js + Express.js |
+| **Database** | MongoDB (Local Instance) |
+| **Voice/NLP** | Web Speech API + Pattern Matching Engine |
+| **DevOps** | Hoppscotch, Nodemon, Git |
 
-Voice Logic: Web Speech API + Regex NLP Matcher
+---
 
-Testing: Hoppscotch / Postman
-
-📁 System Architecture
-/client: React frontend, voice interface, and professional profile dashboard.
-
-/server: Node.js API, Mongoose models, and database connection logic.
-
-📅 Progress Log
-[x] Day 1-2: Environment setup and 47-category skill library design.
-
-[x] Day 3-4: NLP & Voice Integration. Built real-time matching engine and voice-to-text pipeline.
-
-[x] Day 5: UI/UX Prototype. Created professional dashboard with industry-specific color-coding and export features.
-
-[x] Day 6: Backend Migration. Restructured project into Client/Server architecture. Connected MongoDB, designed Skill Schemas, and built the /api/skills REST endpoint.
-
-🚀 Development Commands
-Start Backend:
-
-Bash
-cd server && npx nodemon index.js
-Start Frontend:
-
-Bash
-cd client && npm run dev
+### 📂 System Architecture
+```bash
+skillbridge-ai/
+├── client/          # UI: Voice interface & Professional dashboard
+└── server/          # API: Mongoose models, Express routes, DB logic
