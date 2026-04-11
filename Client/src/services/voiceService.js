@@ -21,7 +21,7 @@ export const createRecognizer = (onResult, onError) => {
     // Efficiently parse the speech fragments into a single string
     const transcript = Array.from(event.results)
       .map(result => result[0].transcript)
-      .join('');
+      .join(' ');
     
     onResult(transcript);
   };
