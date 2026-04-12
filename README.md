@@ -1,5 +1,5 @@
 # 🛰️ SkillBridge AI
-> **"Turning spoken experience into professional opportunity."**
+> **"Turning spoken experience into professional opportunities."**
 
 **Status:** 🏗️ Phase 2: Backend Infrastructure & Data Persistence  
 - [x] **Day 7:** **The Full-Stack Handshake.** * Integrated `fetch()` API with Vite Proxy support.
