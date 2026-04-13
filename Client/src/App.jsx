@@ -32,6 +32,10 @@ function App() {
   const [isListening, setIsListening] = useState(false);
   const [recognizer, setRecognizer] = useState(null);
 
+  const [userName, setUserName] = useState("");
+  const [userPhone, setUserPhone] = useState("");
+  const [saveStatus, setSaveStatus] = useState("");
+
   // --- DAY 7: DATABASE STATES ---
   const [dbSkills, setDbSkills] = useState([]); // Skills fetched from MongoDB
   const [loading, setLoading] = useState(true);
@@ -119,6 +123,35 @@ function App() {
     element.click();
   };
 
+  const handleSaveProfile = async () => {
+    if (!userName || !userPhone || foundSkills.length === 0) {
+      alert("Please enter details and identify some skills first!");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/profiles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: userName,
+          phone: userPhone,
+          skills: foundSkills,
+        }),
+      });
+
+      if (response.ok) {
+        setSaveStatus("✅ Profile Saved Successfully!");
+        // Optional: Reset fields after saving
+        setUserName("");
+        setUserPhone("");
+        setTimeout(() => setSaveStatus(""), 3000);
+      }
+    } catch (err) {
+      setSaveStatus("❌ Error saving profile.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f1f5f9] py-12 px-4 font-sans">
       <div className="max-w-5xl mx-auto">
@@ -172,6 +205,47 @@ function App() {
               >
                 {isListening ? "🛑 STOP LISTENING" : "🎤 START RECORDING"}
               </button>
+
+              <div className="mt-8 bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
+                <h3 className="font-bold text-slate-800 text-xl mb-6">Create Profile</h3>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Full Name</label>
+                    <input 
+                      type="text" 
+                      value={userName}
+                      onChange={(e) => setUserName(e.target.value)}
+                      placeholder="e.g. John Doe"
+                      className="w-full p-4 bg-white border border-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Phone Number</label>
+                    <input 
+                      type="tel" 
+                      value={userPhone}
+                      onChange={(e) => setUserPhone(e.target.value)}
+                      placeholder="+1 234 567 890"
+                      className="w-full p-4 bg-white border border-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleSaveProfile}
+                    className="w-full mt-4 py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-emerald-600 transition-all shadow-lg flex items-center justify-center gap-2 group"
+                  >
+                    <span>💾 Save My Profile</span>
+                  </button>
+
+                  {saveStatus && (
+                    <p className={`text-center text-sm font-bold mt-4 animate-bounce ${saveStatus.includes('✅') ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {saveStatus}
+                    </p>
+                  )}
+                </div>
+              </div>
 
               <div className="mt-8">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 block">
