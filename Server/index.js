@@ -50,6 +50,15 @@ app.post('/api/profiles', async(req, res) =>{
   }
 });
 
+app.get('/api/profiles', async (req, res) => {
+  try{
+    const profiles = await Profile.find().sort({ createdAt: -1});
+    res.json(profiles);
+  }catch(err){
+    res.status(500).json({message: "Error fetching profiles:"});
+  }
+});
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
