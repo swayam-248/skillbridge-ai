@@ -1,41 +1,23 @@
-# 🛰️ SkillBridge AI
-> **"Turning spoken experience into professional opportunities."**
+# SkillBridge AI 🚀
 
-**Status:** 🏗️ Phase 2: Backend Infrastructure & Data Persistence  
-- [x] **Day 9:** **The Recruiter Command Center.**
-    * Developed `GET /api/profiles` endpoint for data retrieval.
-    * Implemented Conditional Rendering for Worker/Recruiter tab switching.
-    * Built a dynamic Profile Gallery with skill-based color coding.
-    * Added a real-time Search Engine to filter the talent pool by name/skill.
+An AI-powered recruitment platform bridging the gap between manual experience and professional titles.
 
----
+## 🏗️ Technical Architecture (Updated Day 11)
 
-### 🎯 Project Vision
-A voice-first, two-sided marketplace designed to bridge the gap between colloquial work experience and formal industry standards. We empower informal workers by converting their spoken history into a verifiable, professional skill profile.
+### Frontend (React + Vite)
+- **State Management:** React Context API (`AuthContext`) for global user state.
+- **Authentication:** Passwordless OTP (Email-based) using Nodemailer.
+- **Persistence:** JWT stored in `localStorage` for seamless sessions.
+- **Routing:** Protected routes using `react-router-dom`.
 
----
+### Backend (Node.js + Express)
+- **Database:** MongoDB (Mongoose) storing Users and OTPs.
+- **Security:** JWT (JSON Web Tokens) and CORS configuration.
+- **Communication:** Axios-driven requests between Client and Server.
 
-### 📊 Knowledge Base & Data Integrity
-* **Skill Taxonomy:** 47 professional categories now fully migrated to **MongoDB**.
-* **Industry Domains:** * `Agriculture`, `Trade Services`, `Hospitality`, `Logistics & Transport`
-    * `Cleaning Services`, `Retail`, `Landscaping`
-* **Storage Architecture:** Transitioned from static JSON files to **Mongoose Schemas** (NoSQL) for high-speed relational queries.
-
----
-
-### 🛠️ Tech Stack
-| Layer | Technology |
-| :--- | :--- |
-| **Frontend** | React (Vite) + Tailwind CSS |
-| **Backend** | Node.js + Express.js |
-| **Database** | MongoDB (Local Instance) |
-| **Voice/NLP** | Web Speech API + Pattern Matching Engine |
-| **DevOps** | Hoppscotch, Nodemon, Git |
-
----
-
-### 📂 System Architecture
-```bash
-skillbridge-ai/
-├── client/          # UI: Voice interface & Professional dashboard
-└── server/          # API: Mongoose models, Express routes, DB logic
+## ✅ Completed Milestones
+- [x] Backend OTP Logic & MongoDB Integration
+- [x] JWT Token generation and verification
+- [x] Frontend AuthProvider (Context API)
+- [x] Role-based UI (Recruiter vs. Worker views)
+- [x] Functional Logout and Session Persistence
