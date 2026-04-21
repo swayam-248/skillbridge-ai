@@ -1,6 +1,5 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
 require('dotenv').config();
 const Skill = require('./models/Skills');
 const Profile = require('./models/Profile');
@@ -8,12 +7,18 @@ const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const Otp = require('./models/Otp');
 const sendEmail = require('./utils/sendEmail');
+const cors = require('cors');
 
 const JWT_SECRET = "skillbridge_secret_2026"
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:5173', // Allow your React app
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+}));
+
 app.use(express.json());
 
 const MONGO_URI = 'mongodb://127.0.0.1:27017/skillbridge'; 
@@ -22,16 +27,18 @@ mongoose.connect(MONGO_URI)
   .then(() => console.log("MongoDB Connected Successfully!"))
   .catch(err => console.error("MongoDB Connection Error:", err));
 
+
+
 const protectRecruiter = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  console.log("Auth Header Received:", authHeader); // 👈 Debug Line 1
+  console.log("Auth Header Received:", authHeader); 
 
   const token = authHeader?.split(" ")[1];
   if (!token) return res.status(401).json({ message: "No token provided" });
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    console.log("Decoded Token Data:", decoded); // 👈 Debug Line 2
+    console.log("Decoded Token Data:", decoded);
     
     if (decoded.role !== 'recruiter') {
       return res.status(403).json({ message: "Access denied. Recruiters only." });
@@ -40,7 +47,7 @@ const protectRecruiter = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
-    console.log("JWT Error:", err.message); // 👈 Debug Line 3
+    console.log("JWT Error:", err.message); 
     res.status(401).json({ message: "Invalid Token" });
   }
 };

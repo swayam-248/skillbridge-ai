@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { matchSkills } from "./services/nlpService";
 import { createRecognizer } from "./services/voiceService";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Navbar from "./components/Navbar";
+
 
 const getCategoryStyle = (category) => {
   const normalized = category ? category.toLowerCase().trim() : "default";
@@ -171,6 +176,14 @@ function App() {
             <span className="font-bold">Updating Data...</span>
           </div>
         )}
+        <Router>
+          <Navbar />
+          <Routes>
+            {/* These tell React which component to show for each URL */}
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+          </Routes>
+        </Router>
 
         <nav className="flex justify-center gap-4 mb-12">
           <button
@@ -368,5 +381,4 @@ function App() {
     </div>
   );
 }
-
 export default App;
