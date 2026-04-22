@@ -87,12 +87,13 @@ app.post('/api/profiles', async(req, res) =>{
   }
 });
 
-app.get('/api/profiles',protectRecruiter, async (req, res) => {
-  try{
-    const profiles = await Profile.find().sort({ createdAt: -1});
+app.get('/api/profiles', protectRecruiter, async (req, res) => {
+  try {
+    const profiles = await Profile.find().populate('user', 'email');
     res.json(profiles);
-  }catch(err){
-    res.status(500).json({message: "Error fetching profiles:"});
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error fetching talent pool" });
   }
 });
 

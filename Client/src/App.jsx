@@ -1,10 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { matchSkills } from "./services/nlpService";
 import { createRecognizer } from "./services/voiceService";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Navbar from "./components/Navbar";
+import TalentPool from "./pages/TalentPool";
+import LoadingSpinner from "./components/LoadingSpinner";
+import ErrorBoundary from "./components/ErrorBoundary";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { AuthContext } from "./context/AuthContext";
 
 
 const getCategoryStyle = (category) => {
@@ -42,6 +47,8 @@ function App() {
   const [userPhone, setUserPhone] = useState("");
   const [saveStatus, setSaveStatus] = useState("");
 
+  const { user, logout } = useContext(AuthContext);
+
   const [activeTab, setActiveTab] = useState("worker");
   const [allProfiles, setAllProfiles] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -78,14 +85,44 @@ function App() {
   const fetchAllProfiles = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/profiles");
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/profiles", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
-      setAllProfiles(data);
+      setAllProfiles(Array.isArray(data) ? data : []);
       setActiveTab("recruiter");
     } catch (err) {
       console.error("Error loading profiles:", err);
+      setAllProfiles([]);
+      setActiveTab("recruiter");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleModeSwitch = (mode) => {
+    // Defensive: Stop recognizer if it's active when switching modes
+    if (isListening && recognizer) {
+      recognizer.stop();
+      setIsListening(false);
+    }
+
+    if (mode === "worker") {
+      setActiveTab("worker");
+      setAllProfiles([]); // Clear profiles when switching to worker to prevent leaks
+      setSearchTerm("");
+    } else {
+      fetchAllProfiles();
     }
   };
 
@@ -159,13 +196,25 @@ function App() {
     element.click();
   };
 
-  const filteredProfiles = allProfiles.filter(
-    (profile) =>
-      profile.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      profile.skills.some((s) =>
-        s.professional_title.toLowerCase().includes(searchTerm.toLowerCase()),
-      ),
-  );
+  const filteredProfiles = Array.isArray(allProfiles)
+    ? allProfiles.filter((profile) => {
+        const searchTermLower = searchTerm.toLowerCase();
+
+        // 1. Check Name (Safe check using optional chaining)
+        const matchesName = (profile.fullName || profile.name)
+          ?.toLowerCase()
+          .includes(searchTermLower);
+
+        // 2. Check Skills (Safe check to ensure skills is an array)
+        const matchesSkills =
+          Array.isArray(profile.skills) &&
+          profile.skills.some((s) =>
+            s.professional_title?.toLowerCase().includes(searchTermLower),
+          );
+
+        return matchesName || matchesSkills;
+      })
+    : []; // Default to empty array if allProfiles isn't loaded yet
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] py-12 px-4 font-sans">
@@ -178,26 +227,39 @@ function App() {
         )}
         <Router>
           <Navbar />
-          <Routes>
-            {/* These tell React which component to show for each URL */}
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-          </Routes>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/profiles"
+                element={
+                  <ProtectedRoute requiredRole="recruiter">
+                    <TalentPool />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </ErrorBoundary>
         </Router>
 
         <nav className="flex justify-center gap-4 mb-12">
           <button
-            onClick={() => setActiveTab("worker")}
-            className={`px-8 py-3 rounded-2xl font-black transition-all duration-300 ${activeTab === "worker" ? "bg-blue-600 text-white shadow-xl shadow-blue-200" : "bg-white text-slate-400 hover:text-slate-600"}`}
+            onClick={() => handleModeSwitch("worker")}
+            className={`px-8 py-3 rounded-2xl font-black transition-all duration-300 ${activeTab === "worker" ? "bg-blue-600 text-white shadow-xl" : "bg-white text-gray-600 hover:bg-gray-50"}`}
           >
             👷 Worker Mode
           </button>
-          <button
-            onClick={fetchAllProfiles}
-            className={`px-8 py-3 rounded-2xl font-black transition-all duration-300 ${activeTab === "recruiter" ? "bg-blue-600 text-white shadow-xl shadow-blue-200" : "bg-white text-slate-400 hover:text-slate-600"}`}
-          >
-            🔍 Recruiter Mode
-          </button>
+
+          {/* 🔒 ONLY render this button if the user exists and their role is 'recruiter' */}
+          {user?.role === "recruiter" && (
+            <button
+              onClick={() => handleModeSwitch("recruiter")}
+              className={`px-8 py-3 rounded-2xl font-black transition-all duration-300 ${activeTab === "recruiter" ? "bg-blue-600 text-white shadow-xl" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+            >
+              🔍 Recruiter Mode
+            </button>
+          )}
         </nav>
 
         <header className="text-center mb-16">
@@ -344,37 +406,51 @@ function App() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProfiles.length > 0 ? (
-                filteredProfiles.map((profile) => (
-                  <div
-                    key={profile._id}
-                    className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-white hover:scale-[1.02] transition-all"
-                  >
-                    <div className="mb-6">
-                      <h3 className="text-2xl font-black text-slate-800">
-                        {profile.name}
-                      </h3>
-                      <p className="text-blue-600 font-bold">{profile.phone}</p>
+            {loading ? (
+              <LoadingSpinner />
+            ) : Array.isArray(allProfiles) ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredProfiles.length > 0 ? (
+                  filteredProfiles.map((profile) => (
+                    <div
+                      key={profile._id}
+                      className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-white hover:scale-[1.02] transition-all"
+                    >
+                      <div className="mb-6">
+                        <h3 className="text-2xl font-black text-slate-800">
+                          {profile.fullName || profile.name || "Anonymous User"}
+                        </h3>
+                        <p className="text-blue-600 font-bold">
+                          {profile.user?.email ||
+                            profile.phone ||
+                            "No contact info"}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {profile.skills?.map((s, i) => (
+                          <span
+                            key={i}
+                            className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border-2 ${getCategoryStyle(s.category)}`}
+                          >
+                            {s.professional_title}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {profile.skills.map((s, i) => (
-                        <span
-                          key={i}
-                          className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border-2 ${getCategoryStyle(s.category)}`}
-                        >
-                          {s.professional_title}
-                        </span>
-                      ))}
-                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-20 text-slate-400 font-bold uppercase tracking-widest">
+                    No matching workers found
                   </div>
-                ))
-              ) : (
-                <div className="col-span-full text-center py-20 text-slate-400 font-bold uppercase tracking-widest">
-                  No matching workers found
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-12 text-center bg-amber-50 rounded-[2.5rem] border-2 border-amber-100">
+                <p className="text-amber-700 font-bold">
+                  Data currently unavailable.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
