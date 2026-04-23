@@ -23,7 +23,7 @@ SkillBridge AI is a full-stack platform designed to help workers translate manua
 - [x] **Authentication:** Passwordless OTP email verification.
 - [x] **Authorization:** Role-specific permissions and JWT security.
 - [x] **Marketplace:** A live, searchable Talent Pool pulling from MongoDB.
-- [x] **Stability:** Eliminated "White Screen" errors via defensive state management.
+- [x] **Stability:** Eliminated "White Screen" errors via defensive state managements.
 
 ## 🛠️ Tech Stack
 - **Frontend:** React.js, Vite, Antigravity UI, Axios
