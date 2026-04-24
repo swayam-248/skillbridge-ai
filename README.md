@@ -29,7 +29,7 @@ SkillBridge AI is a full-stack platform designed to help workers translate manua
 - **Frontend:** React.js, Vite, Antigravity UI, Axios
 - **Backend:** Node.js, Express.js
 - **Database:** MongoDB, Mongoose
-- **Security:** JSON Web Tokens (JWT), Bcrypt
+- **Security:** JSON Web Tokens (JWT),  Bcrypt
 
 ---
 
