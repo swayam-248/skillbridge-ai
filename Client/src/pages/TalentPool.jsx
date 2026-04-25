@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorBoundary from "../components/ErrorBoundary";
+import { Link } from "react-router-dom";
 
 const TalentPool = () => {
   const [allProfiles, setAllProfiles] = useState(null); // Start with null for defensive check
@@ -33,6 +34,13 @@ const TalentPool = () => {
       setSearchTerm("");
     };
   }, []);
+
+  // Function to determine color based on match score
+  const getScoreColor = (score) => {
+    if (score >= 80) return "text-green-600 bg-green-100";
+    if (score >= 50) return "text-yellow-600 bg-yellow-100";
+    return "text-red-600 bg-red-100";
+  };
 
   const filteredProfiles = Array.isArray(allProfiles)
     ? allProfiles.filter((profile) => {
@@ -75,6 +83,12 @@ const TalentPool = () => {
                   key={profile._id}
                   className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-white hover:scale-[1.02] transition-all group"
                 >
+                  {/* The Match Score Badge */}
+                  <div className={`absolute top-2 right-2 px-3 py-1 rounded-full text-xs font-bold ${getScoreColor(profile.matchScore || 75)}`}>
+                    {profile.matchScore || 75}% Match
+                  </div>
+
+                  <h3>{profile.fullName}</h3>
                   <div className="mb-6">
                     <h3 className="text-2xl font-black text-slate-800 group-hover:text-blue-600 transition-colors">
                       {profile.fullName || profile.name || "Anonymous User"}
@@ -87,12 +101,18 @@ const TalentPool = () => {
                   <div className="flex flex-wrap gap-2">
                     {/* Safe mapping using optional chaining */}
                     {profile.skills?.map((s, i) => (
-                      <span
+                      
+                      <><span
                         key={i}
                         className="px-3 py-1 rounded-full text-[10px] font-black uppercase border-2 bg-slate-50 text-slate-600 border-slate-100"
                       >
                         {s.professional_title}
-                      </span>
+                      </span><Link to={`/profile/${profile._id}`} key={profile._id} className="no-underline">
+                          <div className="antigravity-card hover:shadow-lg transition-shadow">
+                            <h3>{profile.fullName}</h3>
+                            <p>{profile.skills?.[0]}</p>
+                          </div>
+                        </Link></>
                     ))}
                   </div>
                 </div>

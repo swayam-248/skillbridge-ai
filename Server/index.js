@@ -89,11 +89,17 @@ app.post('/api/profiles', async(req, res) =>{
 
 app.get('/api/profiles', protectRecruiter, async (req, res) => {
   try {
-    const profiles = await Profile.find().populate('user', 'email');
+    const { skill } = req.query; // Get skill from URL e.g., ?skill=Plumbing
+    let query = {};
+    if (skill) {
+      // Use regex for a "flexible" search (case-insensitive)
+      query = { skills: { $regex: skill, $options: 'i' } };
+    }
+
+    const profiles = await Profile.find(query).populate('user', 'email');
     res.json(profiles);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error fetching talent pool" });
+    res.status(500).json({ message: "Server error" });
   }
 });
 

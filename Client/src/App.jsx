@@ -10,6 +10,7 @@ import LoadingSpinner from "./components/LoadingSpinner";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthContext } from "./context/AuthContext";
+import ProfileDetail from "./pages/ProfileDetails";
 
 
 const getCategoryStyle = (category) => {
@@ -178,6 +179,28 @@ function App() {
     return acc;
   }, {});
 
+  const handleSearch = async (e) => {
+    const term = e.target.value;
+    setSearchTerm(term); // This keeps the input field feeling responsive
+
+    try {
+      const token = localStorage.getItem("token");
+
+      // 2. We call the NEW backend route with the search term as a "Query Parameter"
+      const res = await axios.get(
+        `http://localhost:5000/api/profiles?skill=${term}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
+      // 3. Update the state with the filtered results from the DATABASE
+      setAllProfiles(res.data);
+    } catch (err) {
+      console.error("Backend search failed:", err);
+    }
+  };
+
   const downloadProfile = () => {
     if (foundSkills.length === 0) return;
     const profileText = Object.entries(groupedSkills)
@@ -231,6 +254,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/profile/:id" element={<ProfileDetail />} />
               <Route
                 path="/profiles"
                 element={
@@ -307,7 +331,7 @@ function App() {
                     <input
                       type="tel"
                       value={userPhone}
-                      onChange={(e) => setUserPhone(e.target.value)}
+                      onChange={handleSearch}
                       placeholder="Phone"
                       className="w-full p-4 border rounded-xl outline-none"
                     />
