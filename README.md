@@ -33,6 +33,7 @@ SkillBridge AI is a full-stack platform designed to help workers translate manua
 
 ---
 
+
 ## 🚀 Upcoming for Day 13
 - **AI Matching Engine:** Developing logic to match worker skills to job descriptions.
 - **Detailed Profile Views:** Expanding cards to show full career histories.
