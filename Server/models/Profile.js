@@ -10,7 +10,10 @@ const ProfileSchema = new mongoose.Schema({
   fullName: String,
   skills: [String],
   bio: String,
-  // ... rest of your fields
+  isOnline: { type: Boolean, default: false },
+  contactPhone: String,
+  rating: { type: Number, default: 0 },
+  reviewCount: { type: Number, default: 0 }
 });
 
 module.exports = mongoose.model('Profile', ProfileSchema);

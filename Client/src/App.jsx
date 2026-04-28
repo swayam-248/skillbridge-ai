@@ -11,27 +11,23 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthContext } from "./context/AuthContext";
 import ProfileDetail from "./pages/ProfileDetails";
+import axios from "axios";
+import StatusToggle from "./components/StatusToggle";
+import BookingModal from "./components/BookingModal";
+import BookingsDashboard from "./components/BookingsDashboard";
 
 
 const getCategoryStyle = (category) => {
   const normalized = category ? category.toLowerCase().trim() : "default";
   const styles = {
-    agriculture:
-      "bg-green-50 text-green-700 border-green-200 shadow-sm shadow-green-100",
-    "trade services":
-      "bg-amber-50 text-amber-700 border-amber-200 shadow-sm shadow-amber-100",
-    hospitality:
-      "bg-orange-50 text-orange-700 border-orange-200 shadow-sm shadow-orange-100",
-    "logistics & transport":
-      "bg-blue-50 text-blue-700 border-blue-200 shadow-sm shadow-blue-100",
-    "cleaning services":
-      "bg-purple-50 text-purple-700 border-purple-200 shadow-sm shadow-purple-100",
-    retail:
-      "bg-pink-50 text-pink-700 border-pink-200 shadow-sm shadow-pink-100",
-    landscaping:
-      "bg-emerald-50 text-emerald-700 border-emerald-200 shadow-sm shadow-emerald-100",
-    default:
-      "bg-slate-50 text-slate-700 border-slate-200 shadow-sm shadow-slate-100",
+    agriculture: "bg-green-950/50 text-green-400 border-green-800/50 shadow-sm shadow-green-900/20",
+    "trade services": "bg-amber-950/50 text-amber-400 border-amber-800/50 shadow-sm shadow-amber-900/20",
+    hospitality: "bg-orange-950/50 text-orange-400 border-orange-800/50 shadow-sm shadow-orange-900/20",
+    "logistics & transport": "bg-blue-950/50 text-blue-400 border-blue-800/50 shadow-sm shadow-blue-900/20",
+    "cleaning services": "bg-purple-950/50 text-purple-400 border-purple-800/50 shadow-sm shadow-purple-900/20",
+    retail: "bg-pink-950/50 text-pink-400 border-pink-800/50 shadow-sm shadow-pink-900/20",
+    landscaping: "bg-emerald-950/50 text-emerald-400 border-emerald-800/50 shadow-sm shadow-emerald-900/20",
+    default: "bg-slate-800/50 text-slate-300 border-slate-700/50 shadow-sm shadow-slate-900/20",
   };
   return styles[normalized] || styles.default;
 };
@@ -53,6 +49,7 @@ function App() {
   const [activeTab, setActiveTab] = useState("worker");
   const [allProfiles, setAllProfiles] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedWorkerForBooking, setSelectedWorkerForBooking] = useState(null);
 
   useEffect(() => {
     const fetchSkillsFromDB = async () => {
@@ -127,15 +124,39 @@ function App() {
     }
   };
 
+  const handleBookingSubmit = async (workerId, jobDescription) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        "http://localhost:5000/api/bookings",
+        { workerId, jobDescription },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert("Booking request sent successfully!");
+      setSelectedWorkerForBooking(null);
+    } catch (err) {
+      console.error(err);
+      alert("Error sending booking request.");
+    }
+  };
+
   const handleSaveProfile = async () => {
     if (!userName || !userPhone || foundSkills.length === 0) {
       alert("Please enter details and identify some skills first!");
       return;
     }
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Please log in to save your profile!");
+      return;
+    }
     try {
-      const response = await fetch("/api/profiles", {
+      const response = await fetch("http://localhost:5000/api/profiles", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({
           name: userName,
           phone: userPhone,
@@ -149,9 +170,14 @@ function App() {
         setInput("");
         setFoundSkills([]);
         setTimeout(() => setSaveStatus(""), 3000);
+      } else {
+        const errData = await response.json();
+        console.error("Backend Error:", errData);
+        setSaveStatus(`❌ Error: ${errData.message || "Failed to save profile."}`);
       }
     } catch (err) {
-      setSaveStatus("❌ Error saving profile.");
+      console.error(err);
+      setSaveStatus("❌ Network error saving profile.");
     }
   };
 
@@ -240,7 +266,7 @@ function App() {
     : []; // Default to empty array if allProfiles isn't loaded yet
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] py-12 px-4 font-sans">
+    <div className="min-h-screen bg-[#050505] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/10 via-[#050505] to-[#050505] text-slate-200 py-12 px-4 font-sans selection:bg-blue-500/30">
       <div className="max-w-5xl mx-auto">
         {loading && (
           <div className="max-w-md mx-auto mb-8 bg-blue-600 text-white p-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 animate-pulse">
@@ -263,10 +289,9 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-            </Routes>
-          </ErrorBoundary>
-        </Router>
-
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <div className="mt-8">
         <nav className="flex justify-center gap-4 mb-12">
           <button
             onClick={() => handleModeSwitch("worker")}
@@ -287,10 +312,10 @@ function App() {
         </nav>
 
         <header className="text-center mb-16">
-          <h1 className="text-5xl font-black text-slate-900 mb-4 tracking-tight">
-            SkillBridge<span className="text-blue-600">AI</span>
+          <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-4 tracking-tight">
+            SkillBridge<span className="text-white">AI</span>
           </h1>
-          <p className="text-slate-500 text-lg font-medium">
+          <p className="text-slate-400 text-lg font-medium">
             {activeTab === "worker"
               ? "Bridging the gap between manual experience and professional titles."
               : "Discover verified talent and matched professional skillsets."}
@@ -300,8 +325,12 @@ function App() {
         {activeTab === "worker" ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="lg:col-span-4 space-y-6">
-              <div className="bg-white p-8 rounded-[2rem] shadow-xl border border-white">
-                <h3 className="font-bold text-slate-800 text-xl mb-6">
+              <div className="bg-slate-900/40 backdrop-blur-xl p-8 rounded-[2rem] shadow-2xl border border-slate-800/50">
+                <div className="mb-8 border-b border-slate-800 pb-6">
+                  <h3 className="font-bold text-white text-xl mb-4">Availability Status</h3>
+                  <StatusToggle initialStatus={false} />
+                </div>
+                <h3 className="font-bold text-white text-xl mb-6">
                   Voice Command
                 </h3>
                 <button
@@ -316,8 +345,8 @@ function App() {
                   {isListening ? "🛑 STOP LISTENING" : "🎤 START RECORDING"}
                 </button>
 
-                <div className="mt-8 bg-slate-50/50 p-6 rounded-2xl border border-slate-100">
-                  <h3 className="font-bold text-slate-800 text-xl mb-6">
+                <div className="mt-8 bg-slate-950/50 p-6 rounded-2xl border border-slate-800/50">
+                  <h3 className="font-bold text-white text-xl mb-6">
                     Create Profile
                   </h3>
                   <div className="space-y-4">
@@ -326,31 +355,31 @@ function App() {
                       value={userName}
                       onChange={(e) => setUserName(e.target.value)}
                       placeholder="Full Name"
-                      className="w-full p-4 border rounded-xl outline-none"
+                      className="w-full p-4 bg-slate-900 border border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-slate-500 transition-all"
                     />
                     <input
                       type="tel"
                       value={userPhone}
-                      onChange={handleSearch}
+                      onChange={(e) => setUserPhone(e.target.value)}
                       placeholder="Phone"
-                      className="w-full p-4 border rounded-xl outline-none"
+                      className="w-full p-4 bg-slate-900 border border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-slate-500 transition-all"
                     />
                     <button
                       onClick={handleSaveProfile}
-                      className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold"
+                      className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 transition-all transform hover:scale-[1.02] active:scale-95"
                     >
                       Save My Profile
                     </button>
                     {saveStatus && (
-                      <p className="text-center text-sm font-bold animate-bounce text-emerald-600">
+                      <p className="text-center text-sm font-bold animate-bounce text-emerald-400">
                         {saveStatus}
                       </p>
                     )}
                   </div>
                 </div>
 
-                <div className="mt-8 p-5 bg-slate-50 rounded-2xl border min-h-[120px]">
-                  <p className="text-slate-600 italic font-medium">
+                <div className="mt-8 p-5 bg-slate-950/50 rounded-2xl border border-slate-800/50 min-h-[120px]">
+                  <p className="text-slate-400 italic font-medium">
                     {input || "Waiting for voice..."}
                   </p>
                 </div>
@@ -358,15 +387,15 @@ function App() {
             </div>
 
             <div className="lg:col-span-8">
-              <div className="bg-white/70 backdrop-blur-md p-10 rounded-[2.5rem] shadow-2xl border min-h-[500px]">
-                <div className="flex justify-between items-center mb-10 pb-6 border-b">
-                  <h2 className="text-3xl font-black text-slate-800">
+              <div className="bg-slate-900/40 backdrop-blur-xl p-10 rounded-[2.5rem] shadow-2xl border border-slate-800/50 min-h-[500px]">
+                <div className="flex justify-between items-center mb-10 pb-6 border-b border-slate-800">
+                  <h2 className="text-3xl font-black text-white">
                     Your Portfolio
                   </h2>
                   {foundSkills.length > 0 && (
                     <button
                       onClick={downloadProfile}
-                      className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold"
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-900/20"
                     >
                       Export
                     </button>
@@ -411,19 +440,21 @@ function App() {
                   </div>
                 )}
               </div>
+              <BookingsDashboard userRole="worker" />
             </div>
           </div>
         ) : (
           <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl flex flex-col md:flex-row justify-between items-center gap-6">
-              <h2 className="text-3xl font-black text-slate-800 tracking-tight">
+            <BookingsDashboard userRole="recruiter" />
+            <div className="bg-slate-900/40 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-2xl border border-slate-800/50 flex flex-col md:flex-row justify-between items-center gap-6">
+              <h2 className="text-3xl font-black text-white tracking-tight">
                 Talent Pool
               </h2>
               <div className="relative w-full md:w-96">
                 <input
                   type="text"
                   placeholder="Search by name or skill..."
-                  className="w-full p-4 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                  className="w-full p-4 bg-slate-950/50 border border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-medium text-white placeholder-slate-500 transition-all"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -438,27 +469,46 @@ function App() {
                   filteredProfiles.map((profile) => (
                     <div
                       key={profile._id}
-                      className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-white hover:scale-[1.02] transition-all"
+                      className="bg-slate-900/40 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-2xl border border-slate-800/50 hover:border-slate-700 hover:scale-[1.02] transition-all"
                     >
                       <div className="mb-6">
-                        <h3 className="text-2xl font-black text-slate-800">
-                          {profile.fullName || profile.name || "Anonymous User"}
-                        </h3>
+                        <div className="flex justify-between items-start">
+                          <h3 className="text-2xl font-black text-white">
+                            {profile.fullName || profile.name || "Anonymous User"}
+                          </h3>
+                          {profile.isOnline && (
+                            <div className="relative flex items-center justify-center h-5 w-5 mt-1" title="Active Now">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                            </div>
+                          )}
+                        </div>
                         <p className="text-blue-600 font-bold">
-                          {profile.user?.email ||
-                            profile.phone ||
-                            "No contact info"}
+                          {profile.user?.email || profile.contactPhone || profile.phone || "No contact info"}
                         </p>
+                        {profile.isOnline && (
+                          <button 
+                            onClick={() => setSelectedWorkerForBooking(profile)}
+                            className="mt-4 w-full py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-green-500/30 transition-transform hover:scale-105"
+                          >
+                            Book Now
+                          </button>
+                        )}
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {profile.skills?.map((s, i) => (
-                          <span
-                            key={i}
-                            className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border-2 ${getCategoryStyle(s.category)}`}
-                          >
-                            {s.professional_title}
-                          </span>
-                        ))}
+                        {profile.skills?.map((s, i) => {
+                          const isString = typeof s === 'string';
+                          const title = isString ? s : s.professional_title;
+                          const category = isString ? 'default' : s.category;
+                          return (
+                            <span
+                              key={i}
+                              className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border-2 ${getCategoryStyle(category)}`}
+                            >
+                              {title || "Unknown Skill"}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
                   ))
@@ -477,6 +527,20 @@ function App() {
             )}
           </div>
         )}
+
+        {selectedWorkerForBooking && (
+          <BookingModal
+            worker={selectedWorkerForBooking}
+            onClose={() => setSelectedWorkerForBooking(null)}
+            onSubmit={handleBookingSubmit}
+          />
+        )}
+                  </div>
+                </ProtectedRoute>
+              } />
+            </Routes>
+          </ErrorBoundary>
+        </Router>
       </div>
     </div>
   );

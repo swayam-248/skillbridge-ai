@@ -31,6 +31,9 @@ const Navbar = () => {
 
         {user ? (
           <>
+            <Link to="/dashboard" style={{ color: "#00d4ff", fontWeight: "bold" }}>
+              Dashboard
+            </Link>
             {/* This only shows if you are a recruiter! */}
             {user.role === "recruiter" && (
               <Link

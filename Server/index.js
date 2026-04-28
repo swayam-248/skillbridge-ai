@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 const Skill = require('./models/Skills');
 const Profile = require('./models/Profile');
+const Booking = require('./models/Booking');
+const Review = require('./models/Review');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const Otp = require('./models/Otp');
@@ -31,28 +33,48 @@ mongoose.connect(MONGO_URI)
 
 const protectRecruiter = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  console.log("Auth Header Received:", authHeader); 
-
   const token = authHeader?.split(" ")[1];
   if (!token) return res.status(401).json({ message: "No token provided" });
-
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    console.log("Decoded Token Data:", decoded);
-    
     if (decoded.role !== 'recruiter') {
       return res.status(403).json({ message: "Access denied. Recruiters only." });
     }
-    
     req.user = decoded;
     next();
   } catch (err) {
-    console.log("JWT Error:", err.message); 
     res.status(401).json({ message: "Invalid Token" });
   }
 };
 
+const protectWorker = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "No token provided" });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.role !== 'worker') {
+      return res.status(403).json({ message: "Access denied. Workers only." });
+    }
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(401).json({ message: "Invalid Token" });
+  }
+};
 
+const protectAny = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "No token provided" });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(401).json({ message: "Invalid Token" });
+  }
+};
 app.get('/api/skills', async(req, res)=>{
   try{
     const allSkills = await Skill.find();
@@ -69,18 +91,21 @@ app.get('/', (req, res) => {
   res.send('SkillBridge AI Server is Running and Database is connected!');
 });
 
-app.post('/api/profiles', async(req, res) =>{
+app.post('/api/profiles', protectWorker, async(req, res) =>{
   try{
     const { name , phone, skills} = req.body;
 
-    const newProfile = new Profile({
-      name,
-      phone,
-      skills
-    });
-    const savedProfile = await await newProfile.save();
+    const savedProfile = await Profile.findOneAndUpdate(
+      { user: req.user.userId },
+      {
+        fullName: name,
+        contactPhone: phone,
+        skills: skills.map(s => s.professional_title)
+      },
+      { upsert: true, new: true }
+    );
     res.status(201).json(savedProfile);
-    console.log("New Profile Saved: ", savedProfile.name);
+    console.log("Profile Saved/Updated: ", savedProfile.fullName);
   }catch(err){
     console.log(err);
     res.status(500).json({message: "Error saving profile"});
@@ -103,6 +128,117 @@ app.get('/api/profiles', protectRecruiter, async (req, res) => {
   }
 });
 
+
+app.put('/api/profile/status', protectWorker, async (req, res) => {
+  try {
+    const { isOnline } = req.body;
+    const profile = await Profile.findOneAndUpdate(
+      { user: req.user.userId },
+      { isOnline },
+      { new: true }
+    );
+    res.json(profile);
+  } catch (err) {
+    res.status(500).json({ message: "Server error updating status" });
+  }
+});
+
+app.get('/api/workers/active', protectRecruiter, async (req, res) => {
+  try {
+    const { skill } = req.query;
+    let query = { isOnline: true };
+    if (skill) {
+      query.skills = { $regex: skill, $options: 'i' };
+    }
+    const profiles = await Profile.find(query).populate('user', 'email');
+    res.json(profiles);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.post('/api/bookings', protectRecruiter, async (req, res) => {
+  try {
+    const { workerId, jobDescription } = req.body;
+    const booking = new Booking({
+      worker: workerId,
+      recruiter: req.user.userId,
+      jobDescription
+    });
+    const savedBooking = await booking.save();
+    res.status(201).json(savedBooking);
+  } catch (err) {
+    res.status(500).json({ message: "Error creating booking" });
+  }
+});
+
+app.get('/api/bookings', protectAny, async (req, res) => {
+  try {
+    const { userId, role } = req.user;
+    let query = {};
+    if (role === 'worker') query.worker = userId;
+    else if (role === 'recruiter') query.recruiter = userId;
+    
+    const bookings = await Booking.find(query)
+      .populate('worker', 'email')
+      .populate('recruiter', 'email')
+      .sort({ createdAt: -1 });
+    res.json(bookings);
+  } catch (err) {
+    res.status(500).json({ message: "Server error fetching bookings" });
+  }
+});
+
+app.put('/api/bookings/:id/status', protectAny, async (req, res) => {
+  try {
+    const { status } = req.body;
+    const updateData = { status };
+    if (status === 'completed') updateData.completedAt = Date.now();
+    
+    const booking = await Booking.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+    res.json(booking);
+  } catch (err) {
+    res.status(500).json({ message: "Error updating booking status" });
+  }
+});
+
+app.post('/api/reviews', protectRecruiter, async (req, res) => {
+  try {
+    const { bookingId, rating, comment } = req.body;
+    
+    const booking = await Booking.findById(bookingId);
+    if (!booking || booking.status !== 'completed') {
+      return res.status(400).json({ message: "Booking must be completed to leave a review." });
+    }
+    
+    const review = new Review({
+      booking: bookingId,
+      reviewer: req.user.userId,
+      worker: booking.worker,
+      rating,
+      comment
+    });
+    await review.save();
+    
+    // Update worker profile rating
+    const profile = await Profile.findOne({ user: booking.worker });
+    if (profile) {
+      const newCount = profile.reviewCount + 1;
+      const newRating = ((profile.rating * profile.reviewCount) + rating) / newCount;
+      profile.reviewCount = newCount;
+      profile.rating = newRating;
+      await profile.save();
+    }
+    
+    res.status(201).json(review);
+  } catch (err) {
+    res.status(500).json({ message: "Error submitting review" });
+  }
+});
 
 app.post('/api/auth/send-otp', async(req, res) =>{
   const {email} = req.body;
