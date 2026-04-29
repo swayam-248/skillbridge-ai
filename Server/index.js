@@ -5,6 +5,8 @@ const Skill = require('./models/Skills');
 const Profile = require('./models/Profile');
 const Booking = require('./models/Booking');
 const Review = require('./models/Review');
+const Job = require('./models/Job');
+const Application = require('./models/Application');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const Otp = require('./models/Otp');
@@ -91,7 +93,7 @@ app.get('/', (req, res) => {
   res.send('SkillBridge AI Server is Running and Database is connected!');
 });
 
-app.post('/api/profiles', protectWorker, async(req, res) =>{
+app.post('/api/profiles', protectAny, async(req, res) =>{
   try{
     const { name , phone, skills} = req.body;
 
@@ -112,18 +114,91 @@ app.post('/api/profiles', protectWorker, async(req, res) =>{
   }
 });
 
-app.get('/api/profiles', protectRecruiter, async (req, res) => {
+app.get('/api/profile/me', protectAny, async (req, res) => {
   try {
-    const { skill } = req.query; // Get skill from URL e.g., ?skill=Plumbing
-    let query = {};
-    if (skill) {
-      // Use regex for a "flexible" search (case-insensitive)
-      query = { skills: { $regex: skill, $options: 'i' } };
+    const profile = await Profile.findOne({ user: req.user.userId }).populate('user', 'email');
+
+    // 1. RECRUITERS ALWAYS SKIP (even without a profile record)
+    if (req.user.role === 'recruiter') {
+      return res.json({ isComplete: true });
     }
 
-    const profiles = await Profile.find(query).populate('user', 'email');
-    res.json(profiles);
+    if (!profile) {
+      return res.json({ isComplete: false });
+    }
+
+    // Fetch reviews and calculate average (for workers)
+    const reviews = await Review.find({ worker: req.user.userId }).sort({ createdAt: -1 });
+    const avgRating = reviews.length > 0 
+      ? reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length 
+      : 0;
+
+    // Fetch work history (for workers)
+    const workHistory = await Booking.find({ worker: req.user.userId, status: 'completed' })
+      .populate('recruiter', 'email')
+      .sort({ completedAt: -1 });
+
+    const user = profile.user;
+    
+    // 2. EXISTING USERS SKIP (account > 10s old)
+    const isExistingUser = !user.createdAt || (new Date(user.createdAt).getTime() < (Date.now() - 10000));
+    const isComplete = isExistingUser || !!(profile.fullName && profile.contactPhone);
+
+    res.json({
+      ...profile._doc,
+      isComplete,
+      averageRating: avgRating.toFixed(1),
+      reviewCount: reviews.length,
+      reviews,
+      workHistory
+    });
   } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.get('/api/profiles', protectRecruiter, async (req, res) => {
+  try {
+    const { skill } = req.query;
+    
+    // 1. Fetch all users who are 'workers'
+    const workers = await User.find({ role: 'worker' });
+
+    // 2. Fetch profiles for these workers and enrich them
+    const enrichedProfiles = await Promise.all(workers.map(async (worker) => {
+      // Find the profile (it might not exist if they skipped onboarding)
+      let profile = await Profile.findOne({ user: worker._id });
+      
+      // If we are searching for a specific skill and this profile doesn't have it, skip
+      if (skill) {
+        const skillRegex = new RegExp(skill, 'i');
+        const hasSkill = profile && profile.skills && profile.skills.some(s => skillRegex.test(s));
+        if (!hasSkill) return null;
+      }
+
+      // Fetch reviews for rating
+      const reviews = await Review.find({ worker: worker._id });
+      const avgRating = reviews.length > 0 
+        ? reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length 
+        : 0;
+
+      // Return a unified object
+      return {
+        _id: profile?._id || `temp_${worker._id}`,
+        user: { _id: worker._id, email: worker.email },
+        fullName: profile?.fullName || "Anonymous Worker",
+        contactPhone: profile?.contactPhone || "Not provided",
+        skills: profile?.skills || [],
+        isOnline: profile?.isOnline || false,
+        averageRating: avgRating.toFixed(1),
+        reviewCount: reviews.length
+      };
+    }));
+
+    // Filter out nulls (from the skill filter)
+    res.json(enrichedProfiles.filter(p => p !== null));
+  } catch (err) {
+    console.error("Error fetching profiles:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -135,10 +210,11 @@ app.put('/api/profile/status', protectWorker, async (req, res) => {
     const profile = await Profile.findOneAndUpdate(
       { user: req.user.userId },
       { isOnline },
-      { new: true }
+      { new: true, upsert: true } // Create profile if it doesn't exist
     );
     res.json(profile);
   } catch (err) {
+    console.error("Error updating status:", err);
     res.status(500).json({ message: "Server error updating status" });
   }
 });
@@ -154,6 +230,72 @@ app.get('/api/workers/active', protectRecruiter, async (req, res) => {
     res.json(profiles);
   } catch (err) {
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Job Board Endpoints
+app.post('/api/jobs', protectRecruiter, async (req, res) => {
+  try {
+    const job = await Job.create({ ...req.body, recruiter: req.user.userId });
+    res.status(201).json(job);
+  } catch (err) {
+    res.status(500).json({ message: "Error creating job" });
+  }
+});
+
+app.get('/api/jobs', protectAny, async (req, res) => {
+  try {
+    const jobs = await Job.find({ status: 'open' }).populate('recruiter', 'email').sort({createdAt: -1});
+    res.json(jobs);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching jobs" });
+  }
+});
+
+app.post('/api/jobs/:id/apply', protectWorker, async (req, res) => {
+  try {
+    const existing = await Application.findOne({ job: req.params.id, worker: req.user.userId });
+    if (existing) return res.status(400).json({ message: "Already applied to this job" });
+
+    const application = await Application.create({
+      job: req.params.id,
+      worker: req.user.userId
+    });
+    res.status(201).json(application);
+  } catch (err) {
+    res.status(500).json({ message: "Error applying for job" });
+  }
+});
+
+app.get('/api/applications/me', protectWorker, async (req, res) => {
+  try {
+    const applications = await Application.find({ worker: req.user.userId })
+      .populate({
+        path: 'job',
+        populate: { path: 'recruiter', select: 'email' }
+      })
+      .sort({ createdAt: -1 });
+    res.json(applications);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching applications" });
+  }
+});
+
+app.get('/api/applications/job/:jobId', protectRecruiter, async (req, res) => {
+  try {
+    const applications = await Application.find({ job: req.params.jobId })
+      .populate('worker', 'email')
+      .sort({ createdAt: -1 });
+    
+    // We also need profile info for each worker
+    const enriched = await Promise.all(applications.map(async (app) => {
+      const profile = await Profile.findOne({ user: app.worker._id });
+      return { ...app._doc, profile };
+    }));
+
+    res.json(enriched);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching applicants" });
   }
 });
 
@@ -241,9 +383,10 @@ app.post('/api/reviews', protectRecruiter, async (req, res) => {
 });
 
 app.post('/api/auth/send-otp', async(req, res) =>{
-  const {email} = req.body;
+  let {email} = req.body;
   if(!email) return res.status(400).json({message: "Email is required"});
-
+  
+  email = email.trim().toLowerCase();
   const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
   try{
@@ -252,28 +395,41 @@ app.post('/api/auth/send-otp', async(req, res) =>{
       {code: otpCode, createdAt: Date.now()},
       {upsert: true}
     );
+    console.log(`OTP [${otpCode}] generated for [${email}]`);
     await sendEmail(email, otpCode);
     res.status(200).json({message: "OTP sent successfully"});
   }catch(err){
-    console.log(err);
+    console.error("Error in /send-otp:", err);
     res.status(500).json({message: "Error sending OTP"});
   }
 });
 
 app.post('/api/auth/verify-otp', async (req, res) => {
-  const { email, code } = req.body;
+  let { email, code, role } = req.body;
+  if(!email || !code) return res.status(400).json({message: "Email and code are required"});
+
+  email = email.trim().toLowerCase();
+  code = code.trim();
 
   try {
+    console.log(`Verifying OTP for [${email}] with code [${code}]`);
     const otpRecord = await Otp.findOne({ email, code });
-    if (!otpRecord) return res.status(400).json({ message: "Invalid or expired code" });
-
-    // IDENTITY CHECK: Find or Create the permanent User
-    let user = await User.findOne({ email });
-    if (!user) {
-      user = await User.create({ email, role: 'worker' }); // New users are workers by default
+    
+    if (!otpRecord) {
+      console.log(`Verification failed: No record found for [${email}] with code [${code}]`);
+      return res.status(400).json({ message: "Invalid or expired code" });
     }
 
-    // ISSUE TOKEN: The Digital Passport
+    // IDENTITY CHECK: Find or Create the permanent User
+    let isNewUser = false;
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = await User.create({ email, role: role || 'worker' }); 
+      isNewUser = true;
+      console.log(`New user created: [${email}] as [${user.role}]`);
+    }
+
+    // ISSUE TOKEN
     const token = jwt.sign(
       { userId: user._id, role: user.role }, 
       JWT_SECRET, 
@@ -282,12 +438,32 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 
     // Cleanup
     await Otp.deleteOne({ _id: otpRecord._id });
+    console.log(`Verification successful for [${email}]`);
+
+    // Check if profile exists
+    const profile = await Profile.findOne({ user: user._id });
+    
+    // Recruiters always skip. Existing workers skip. New workers see onboarding.
+    const isExistingUser = !isNewUser || !user.createdAt || (new Date(user.createdAt).getTime() < (Date.now() - 10000));
+    const isComplete = user.role === 'recruiter' || isExistingUser; 
 
     res.status(200).json({ 
       token, 
-      user: { email: user.email, role: user.role } 
+      user: { 
+        email: user.email, 
+        role: user.role,
+        isComplete,
+        // Include any existing profile data
+        fullName: profile?.fullName,
+        contactPhone: profile?.contactPhone,
+        skills: profile?.skills,
+        isOnline: profile?.isOnline,
+        averageRating: profile?.rating,
+        reviewCount: profile?.reviewCount
+      } 
     });
   } catch (error) {
+    console.error("Error in /verify-otp:", error);
     res.status(500).json({ message: "Verification error" });
   }
 });

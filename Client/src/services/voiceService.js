@@ -1,6 +1,6 @@
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-export const createRecognizer = (onResult, onError) => {
+export const createRecognizer = (onResult, onEnd, onError) => {
   if (!SpeechRecognition) {
     console.error("Speech Recognition API is not supported in this browser.");
     return null;
@@ -8,7 +8,6 @@ export const createRecognizer = (onResult, onError) => {
 
   const recognition = new SpeechRecognition();
   
-  // Optimized for Real-Time Skill Matching
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = 'en-US';
@@ -18,7 +17,6 @@ export const createRecognizer = (onResult, onError) => {
   };
 
   recognition.onresult = (event) => {
-    // Efficiently parse the speech fragments into a single string
     const transcript = Array.from(event.results)
       .map(result => result[0].transcript)
       .join(' ');
@@ -26,8 +24,11 @@ export const createRecognizer = (onResult, onError) => {
     onResult(transcript);
   };
 
+  recognition.onend = () => {
+    if (onEnd) onEnd();
+  };
+
   recognition.onerror = (event) => {
-    // We keep the error log to help with any future debugging
     console.error("🎤 SkillBridge AI Error:", event.error);
     if (onError) onError(event.error);
   };

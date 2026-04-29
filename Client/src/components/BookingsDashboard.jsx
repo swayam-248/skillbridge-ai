@@ -9,7 +9,7 @@ const BookingsDashboard = ({ userRole }) => {
 
   const fetchBookings = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       if (!token) return;
       const res = await axios.get('http://localhost:5000/api/bookings', {
         headers: { Authorization: `Bearer ${token}` }
@@ -28,7 +28,7 @@ const BookingsDashboard = ({ userRole }) => {
 
   const updateStatus = async (id, status) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       await axios.put(
         `http://localhost:5000/api/bookings/${id}/status`,
         { status },
@@ -42,7 +42,7 @@ const BookingsDashboard = ({ userRole }) => {
 
   const handleReviewSubmit = async (bookingId, rating, comment) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       await axios.post(
         'http://localhost:5000/api/reviews',
         { bookingId, rating, comment },
@@ -66,7 +66,15 @@ const BookingsDashboard = ({ userRole }) => {
         Your Bookings
       </h2>
       <div className="space-y-4">
-        {bookings.map((b) => (
+        {bookings
+          .filter((b) => {
+            if (userRole === 'worker') {
+              // Workers only want to see ongoing/pending tasks
+              return b.status === 'pending' || b.status === 'accepted';
+            }
+            return true; // Recruiters see everything
+          })
+          .map((b) => (
           <div key={b._id} className="p-6 bg-slate-950/50 rounded-2xl border border-slate-800/50 flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
               <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase mb-2 ${

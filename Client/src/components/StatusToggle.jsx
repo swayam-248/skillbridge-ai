@@ -12,7 +12,7 @@ const StatusToggle = ({ initialStatus = false }) => {
   const toggleStatus = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = sessionStorage.getItem('token');
       const newStatus = !isOnline;
       await axios.put(
         'http://localhost:5000/api/profile/status',
@@ -29,15 +29,15 @@ const StatusToggle = ({ initialStatus = false }) => {
   };
 
   return (
-    <div className="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-      <span className={`font-bold ${isOnline ? 'text-green-600' : 'text-slate-500'}`}>
+    <div className="flex items-center gap-4 bg-slate-950/50 p-4 rounded-2xl shadow-[0_0_15px_-3px_rgba(0,0,0,0.3)] border border-slate-800/50">
+      <span className={`font-bold ${isOnline ? 'text-green-400' : 'text-slate-500'}`}>
         {isOnline ? 'Online & Available' : 'Offline'}
       </span>
       <button
         onClick={toggleStatus}
         disabled={loading}
         className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none ${
-          isOnline ? 'bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]' : 'bg-slate-300'
+          isOnline ? 'bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.3)]' : 'bg-slate-700'
         }`}
       >
         <span

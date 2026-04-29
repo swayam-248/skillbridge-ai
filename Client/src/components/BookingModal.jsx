@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
-const BookingModal = ({ worker, onClose, onSubmit }) => {
-  const [jobDescription, setJobDescription] = useState('');
+const BookingModal = ({ worker, onClose, onSubmit, initialDescription = '' }) => {
+  const [jobDescription, setJobDescription] = useState(initialDescription);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {

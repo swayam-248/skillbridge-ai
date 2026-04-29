@@ -8,29 +8,28 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState(1); // 1: Send Email, 2: Verify OTP
+  const [role, setRole] = useState('worker'); // 'worker' or 'recruiter'
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
-
-
   const handleSendOtp = async (e) => {
-    e.preventDefault(); // 🛑 Stops the page from refreshing
+    e.preventDefault(); 
     try {
-      await axios.post("http://localhost:5000/api/auth/send-otp", { email });
+      await axios.post("http://localhost:5000/api/auth/send-otp", { email: email.trim().toLowerCase() });
       setStep(2);
       alert("Check your email for the code!");
     } catch (err) {
-      console.log(err); // This helps you see the real error in F12
+      console.log(err); 
       alert("Error sending OTP");
     }
   };
 
   const handleVerifyOtp = async (e) => {
-    e.preventDefault(); // 🛑 Stops the page from refreshing
+    e.preventDefault(); 
     try {
       const res = await axios.post(
         "http://localhost:5000/api/auth/verify-otp",
-        { email, code: otp },
+        { email: email.trim().toLowerCase(), code: otp.trim(), role },
       );
       login(res.data.token, res.data.user);
       alert("Logged in successfully!");
@@ -48,12 +47,31 @@ const Login = () => {
             SkillBridge<span className="text-white">AI</span>
           </h2>
           <p className="text-slate-400 font-medium">
-            {step === 1 ? "Sign in to access the platform" : "Verify your identity"}
+            {step === 1 ? "Sign in or create an account" : "Verify your identity"}
           </p>
         </div>
         
         {step === 1 ? (
           <form className="space-y-6" onSubmit={handleSendOtp}>
+            <div>
+              <label className="block text-sm font-bold text-slate-400 mb-2 ml-1 uppercase tracking-wider">I am a...</label>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setRole('worker')}
+                  className={`flex-1 py-3 rounded-2xl font-bold transition-all ${role === 'worker' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' : 'bg-slate-900 border border-slate-800 text-slate-400 hover:bg-slate-800'}`}
+                >
+                  👷 Worker
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole('recruiter')}
+                  className={`flex-1 py-3 rounded-2xl font-bold transition-all ${role === 'recruiter' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20' : 'bg-slate-900 border border-slate-800 text-slate-400 hover:bg-slate-800'}`}
+                >
+                  🔍 Recruiter
+                </button>
+              </div>
+            </div>
             <div>
               <label className="block text-sm font-bold text-slate-400 mb-2 ml-1 uppercase tracking-wider">Email Address</label>
               <input 

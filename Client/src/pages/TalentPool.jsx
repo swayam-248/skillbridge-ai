@@ -5,135 +5,122 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import { Link } from "react-router-dom";
 
 const TalentPool = () => {
-  const [allProfiles, setAllProfiles] = useState(null); // Start with null for defensive check
+  const [allProfiles, setAllProfiles] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = sessionStorage.getItem("token"); // Use sessionStorage for consistency
         const res = await axios.get("http://localhost:5000/api/profiles", {
           headers: { Authorization: `Bearer ${token}` },
         });
-
-        // Ensure we are setting an array
         setAllProfiles(Array.isArray(res.data) ? res.data : []);
-        setLoading(false);
       } catch (err) {
         console.error("Fetch error:", err);
-        setAllProfiles([]); // Fallback to empty array
+        setAllProfiles([]);
+      } finally {
         setLoading(false);
       }
     };
     fetchProfiles();
-
-    // Cleanup state on unmount
-    return () => {
-      setAllProfiles(null);
-      setSearchTerm("");
-    };
   }, []);
 
-  // Function to determine color based on match score
-  const getScoreColor = (score) => {
-    if (score >= 80) return "text-green-600 bg-green-100";
-    if (score >= 50) return "text-yellow-600 bg-yellow-100";
-    return "text-red-600 bg-red-100";
-  };
-
-  const filteredProfiles = Array.isArray(allProfiles)
-    ? allProfiles.filter((profile) => {
-        const term = searchTerm.toLowerCase();
-        // Defensive checks for filtering
-        const matchesName = (profile.fullName || profile.name)?.toLowerCase().includes(term);
-        const matchesSkills = profile.skills?.some((s) =>
-          s.professional_title?.toLowerCase().includes(term)
-        );
-        return matchesName || matchesSkills;
-      })
-    : [];
+  const filteredProfiles = allProfiles.filter((profile) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    const matchesName = (profile.fullName || profile.user?.email)?.toLowerCase().includes(term);
+    const matchesSkills = profile.skills?.some((s) => {
+      const title = typeof s === 'string' ? s : s.professional_title;
+      return title?.toLowerCase().includes(term);
+    });
+    return matchesName || matchesSkills;
+  });
 
   if (loading) return <LoadingSpinner />;
 
   return (
     <ErrorBoundary>
-      <div className="space-y-8 p-4">
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-xl flex flex-col md:flex-row justify-between items-center gap-6 border border-slate-100">
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight">
-            Talent Pool
-          </h2>
+      <div className="space-y-8 p-6 bg-slate-950 min-h-screen">
+        <div className="bg-slate-900/40 backdrop-blur-xl p-10 rounded-[3rem] border border-slate-800/50 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-6">
+          <div>
+            <h2 className="text-4xl font-black text-white tracking-tight mb-2">Talent Pool</h2>
+            <p className="text-slate-400 font-medium">Discover and connect with skilled workers</p>
+          </div>
           <div className="relative w-full md:w-96">
             <input
               type="text"
-              placeholder="Search by name or skill..."
-              className="w-full p-4 bg-slate-50 border rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all"
+              placeholder="Search by name, email or skill..."
+              className="w-full p-5 bg-slate-950/50 border border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-slate-500 transition-all shadow-inner"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
 
-        {/* Defensive Rendering: Only render if allProfiles is an array */}
-        {Array.isArray(allProfiles) ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProfiles.length > 0 ? (
-              filteredProfiles.map((profile) => (
-                <div
-                  key={profile._id}
-                  className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-white hover:scale-[1.02] transition-all group"
-                >
-                  {/* The Match Score Badge */}
-                  <div className={`absolute top-2 right-2 px-3 py-1 rounded-full text-xs font-bold ${getScoreColor(profile.matchScore || 75)}`}>
-                    {profile.matchScore || 75}% Match
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {filteredProfiles.length > 0 ? (
+            filteredProfiles.map((profile) => (
+              <Link 
+                to={`/profile/${profile.user?._id || profile._id}`} 
+                key={profile._id}
+                className="block group"
+              >
+                <div className="bg-slate-900/40 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-800/50 shadow-xl group-hover:border-blue-500/50 group-hover:bg-slate-900/60 transition-all duration-300 h-full flex flex-col">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="h-14 w-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl shadow-lg shadow-blue-500/20">
+                      {profile.fullName?.[0] || profile.user?.email?.[0]?.toUpperCase() || "?"}
+                    </div>
+                    <div className="flex items-center gap-1 bg-slate-950/50 px-3 py-1 rounded-full border border-slate-800">
+                      <span className="text-yellow-400 text-sm">★</span>
+                      <span className="text-white font-bold text-xs">{profile.averageRating || "0.0"}</span>
+                    </div>
                   </div>
 
-                  <h3>{profile.fullName}</h3>
-                  <div className="mb-6">
-                    <h3 className="text-2xl font-black text-slate-800 group-hover:text-blue-600 transition-colors">
-                      {profile.fullName || profile.name || "Anonymous User"}
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-black text-white mb-1 group-hover:text-blue-400 transition-colors">
+                      {profile.fullName || "Anonymous Worker"}
                     </h3>
-                    <p className="text-blue-600 font-bold text-sm">
-                      {profile.user?.email || profile.phone || "No contact info"}
+                    <p className="text-slate-500 font-medium text-sm mb-6 truncate">
+                      {profile.user?.email}
                     </p>
+
+                    <div className="flex flex-wrap gap-2">
+                      {profile.skills?.length > 0 ? (
+                        profile.skills.slice(0, 3).map((skill, i) => (
+                          <span key={i} className="px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full text-[10px] font-black uppercase tracking-wider">
+                            {typeof skill === 'string' ? skill : skill.professional_title}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-slate-600 text-[10px] uppercase font-black italic">No skills listed</span>
+                      )}
+                      {profile.skills?.length > 3 && (
+                        <span className="text-slate-500 text-[10px] font-bold">+{profile.skills.length - 3} more</span>
+                      )}
+                    </div>
                   </div>
                   
-                  <div className="flex flex-wrap gap-2">
-                    {/* Safe mapping using optional chaining */}
-                    {profile.skills?.map((s, i) => (
-                      
-                      <><span
-                        key={i}
-                        className="px-3 py-1 rounded-full text-[10px] font-black uppercase border-2 bg-slate-50 text-slate-600 border-slate-100"
-                      >
-                        {s.professional_title}
-                      </span><Link to={`/profile/${profile._id}`} key={profile._id} className="no-underline">
-                          <div className="antigravity-card hover:shadow-lg transition-shadow">
-                            <h3>{profile.fullName}</h3>
-                            <p>{profile.skills?.[0]}</p>
-                          </div>
-                        </Link></>
-                    ))}
+                  <div className="mt-8 pt-6 border-t border-slate-800/50 flex items-center justify-between">
+                    <span className={`text-[10px] font-black uppercase tracking-widest ${profile.isOnline ? 'text-green-500' : 'text-slate-600'}`}>
+                      ● {profile.isOnline ? 'Active Now' : 'Offline'}
+                    </span>
+                    <span className="text-blue-500 text-xs font-bold group-hover:translate-x-1 transition-transform">View Profile →</span>
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-20 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200">
-                <p className="text-slate-400 font-bold uppercase tracking-widest">
-                  No matching workers found
-                </p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="p-8 text-center bg-amber-50 text-amber-700 rounded-2xl border border-amber-200">
-            Unable to display talent pool data.
-          </div>
-        )}
+              </Link>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-32 bg-slate-900/20 rounded-[3rem] border-2 border-dashed border-slate-800">
+              <div className="text-5xl mb-4 opacity-20">🔍</div>
+              <p className="text-slate-500 font-black uppercase tracking-widest">No workers found matching your search</p>
+            </div>
+          )}
+        </div>
       </div>
     </ErrorBoundary>
   );
 };
 
 export default TalentPool;
-
