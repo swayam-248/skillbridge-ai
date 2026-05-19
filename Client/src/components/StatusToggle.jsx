@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../utils/api';
 
 const StatusToggle = ({ initialStatus = false }) => {
   const [isOnline, setIsOnline] = useState(initialStatus);
@@ -15,7 +16,7 @@ const StatusToggle = ({ initialStatus = false }) => {
       const token = sessionStorage.getItem('token');
       const newStatus = !isOnline;
       await axios.put(
-        'http://localhost:5000/api/profile/status',
+        `${API_BASE_URL}/api/profile/status`,
         { isOnline: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );

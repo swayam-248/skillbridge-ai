@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useContext } from "react";
 import { matchSkills } from "./services/nlpService";
 import { createRecognizer } from "./services/voiceService";
+import Soundwave from "./components/Soundwave";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Navbar from "./components/Navbar";
 import TalentPool from "./pages/TalentPool";
 import LoadingSpinner from "./components/LoadingSpinner";
+import { SkeletonGrid } from "./components/SkeletonCard";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthContext } from "./context/AuthContext";
@@ -18,6 +20,7 @@ import BookingsDashboard from "./components/BookingsDashboard";
 import Sidebar from "./components/Sidebar";
 import JobsBoard from "./components/JobsBoard";
 import ApplicationsTracker from "./components/ApplicationsTracker";
+import { API_BASE_URL } from "./utils/api";
 
 
 const getCategoryStyle = (category) => {
@@ -112,8 +115,8 @@ function App() {
       setLoading(true);
       const token = sessionStorage.getItem("token");
       const url = skill 
-        ? `http://localhost:5000/api/profiles?skill=${encodeURIComponent(skill)}`
-        : "http://localhost:5000/api/profiles";
+        ? `${API_BASE_URL}/api/profiles?skill=${encodeURIComponent(skill)}`
+        : `${API_BASE_URL}/api/profiles`;
         
       const response = await fetch(url, {
         method: "GET",
@@ -167,7 +170,7 @@ function App() {
       try {
         const token = sessionStorage.getItem("token");
         if (!token) return;
-        const response = await fetch("http://localhost:5000/api/profile/me", {
+        const response = await fetch(`${API_BASE_URL}/api/profile/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (response.ok) {
@@ -223,7 +226,7 @@ function App() {
     try {
       const token = sessionStorage.getItem("token");
       await axios.post(
-        "http://localhost:5000/api/bookings",
+        `${API_BASE_URL}/api/bookings`,
         { workerId, jobDescription },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -248,7 +251,7 @@ function App() {
       return;
     }
     try {
-      const response = await fetch("http://localhost:5000/api/profiles", {
+      const response = await fetch(`${API_BASE_URL}/api/profiles`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -318,7 +321,7 @@ function App() {
 
       // 2. We call the NEW backend route with the search term as a "Query Parameter"
       const res = await axios.get(
-        `http://localhost:5000/api/profiles?skill=${term}`,
+        `${API_BASE_URL}/api/profiles?skill=${term}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -444,8 +447,11 @@ function App() {
 
                               {user?.role === 'worker' && (
                                 <div className="space-y-4">
-                                  <div className="flex justify-between items-end">
-                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Your Skills (Voice Powered)</label>
+                                  <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-4">
+                                      <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Your Skills (Voice Powered)</label>
+                                      <Soundwave isListening={isListening} />
+                                    </div>
                                     <button 
                                       type="button"
                                       onClick={toggleListen}
@@ -499,7 +505,10 @@ function App() {
                                     <h3 className="font-bold text-white text-xl mb-4">Availability Status</h3>
                                     <StatusToggle initialStatus={userStatus} />
                                   </div>
-                                  <h3 className="font-bold text-white text-xl mb-6">Voice Command</h3>
+                                  <div className="flex justify-between items-center mb-6">
+                                    <h3 className="font-bold text-white text-xl">Voice Command</h3>
+                                    <Soundwave isListening={isListening} />
+                                  </div>
                                   <button
                                     onClick={toggleListen}
                                     disabled={loading || error}
@@ -674,8 +683,11 @@ function App() {
                           {currentView === "talent" && (
                             <div className="space-y-8 animate-in fade-in duration-500">
                               <div className="bg-slate-900/40 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-2xl border border-slate-800/50 flex flex-col gap-6">
-                                <div className="flex justify-between items-end mb-2">
-                                  <h2 className="text-3xl font-black text-white tracking-tight">Describe Your Problem</h2>
+                                <div className="flex justify-between items-center mb-2">
+                                  <div className="flex items-center gap-4">
+                                    <h2 className="text-3xl font-black text-white tracking-tight">Describe Your Problem</h2>
+                                    <Soundwave isListening={isListening} />
+                                  </div>
                                   <button 
                                     onClick={toggleListen}
                                     className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-blue-600/20 text-blue-400 border border-blue-500/30'}`}
@@ -713,7 +725,7 @@ function App() {
                               </div>
 
                               {loading ? (
-                                <LoadingSpinner />
+                                <SkeletonGrid count={3} />
                               ) : Array.isArray(allProfiles) ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                   {filteredProfiles.length > 0 ? (

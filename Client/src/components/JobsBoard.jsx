@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../utils/api';
 
 const JobsBoard = ({ userRole }) => {
   const [jobs, setJobs] = useState([]);
@@ -10,7 +11,7 @@ const JobsBoard = ({ userRole }) => {
   const fetchJobs = async () => {
     try {
       const token = sessionStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/jobs', {
+      const res = await axios.get(`${API_BASE_URL}/api/jobs`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setJobs(res.data);
@@ -29,7 +30,7 @@ const JobsBoard = ({ userRole }) => {
     e.preventDefault();
     try {
       const token = sessionStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/jobs', { title, description }, {
+      await axios.post(`${API_BASE_URL}/api/jobs`, { title, description }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setTitle('');
@@ -45,7 +46,7 @@ const JobsBoard = ({ userRole }) => {
   const handleApply = async (id) => {
     try {
       const token = sessionStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/jobs/${id}/apply`, {}, {
+      await axios.post(`${API_BASE_URL}/api/jobs/${id}/apply`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert('Applied successfully! Recruiter will be notified.');

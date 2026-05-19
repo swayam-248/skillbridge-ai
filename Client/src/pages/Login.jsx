@@ -1,21 +1,56 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import axios from "axios";
+import { API_BASE_URL } from '../utils/api';
 
 import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [step, setStep] = useState(1); // 1: Send Email, 2: Verify OTP
   const [role, setRole] = useState('worker'); // 'worker' or 'recruiter'
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  const handleDigitChange = (index, value) => {
+    const cleanValue = value.replace(/\D/g, '');
+    const newDigits = [...otpDigits];
+    newDigits[index] = cleanValue.slice(-1);
+    setOtpDigits(newDigits);
+    setOtp(newDigits.join(''));
+
+    if (cleanValue !== '' && index < 5) {
+      document.getElementById(`otp-input-${index + 1}`)?.focus();
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && otpDigits[index] === '' && index > 0) {
+      const newDigits = [...otpDigits];
+      newDigits[index - 1] = '';
+      setOtpDigits(newDigits);
+      setOtp(newDigits.join(''));
+      document.getElementById(`otp-input-${index - 1}`)?.focus();
+    }
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').trim().replace(/\D/g, '');
+    if (pastedData.length === 6) {
+      const newDigits = pastedData.split('');
+      setOtpDigits(newDigits);
+      setOtp(pastedData);
+      document.getElementById('otp-input-5')?.focus();
+    }
+  };
+
   const handleSendOtp = async (e) => {
     e.preventDefault(); 
     try {
-      await axios.post("http://localhost:5000/api/auth/send-otp", { email: email.trim().toLowerCase() });
+      await axios.post(`${API_BASE_URL}/api/auth/send-otp`, { email: email.trim().toLowerCase() });
       setStep(2);
       alert("Check your email for the code!");
     } catch (err) {
@@ -28,7 +63,7 @@ const Login = () => {
     e.preventDefault(); 
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/auth/verify-otp",
+        `${API_BASE_URL}/api/auth/verify-otp`,
         { email: email.trim().toLowerCase(), code: otp.trim(), role },
       );
       login(res.data.token, res.data.user);
@@ -93,17 +128,25 @@ const Login = () => {
         ) : (
           <form className="space-y-6 animate-in slide-in-from-right-8 duration-500" onSubmit={handleVerifyOtp}>
             <div>
-              <label className="block text-sm font-bold text-slate-400 mb-2 ml-1 uppercase tracking-wider">Verification Code</label>
-              <input 
-                type="text" 
-                required
-                placeholder="000000" 
-                value={otp} 
-                onChange={(e) => setOtp(e.target.value)} 
-                className="w-full p-4 bg-slate-950/50 border border-slate-800 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-white placeholder-slate-600 font-medium text-center text-2xl tracking-[0.5em] transition-all"
-                maxLength={6}
-              />
-              <p className="text-xs text-slate-500 mt-3 text-center">We sent a secure code to <span className="text-blue-400">{email}</span></p>
+              <label className="block text-sm font-bold text-slate-400 mb-4 ml-1 uppercase tracking-wider text-center">Verification Code</label>
+              <div className="flex justify-between gap-2">
+                {otpDigits.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    id={`otp-input-${idx}`}
+                    type="text"
+                    required
+                    pattern="\d"
+                    value={digit}
+                    onChange={(e) => handleDigitChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(idx, e)}
+                    onPaste={handlePaste}
+                    className="w-12 h-14 bg-slate-950/50 border border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-white font-black text-center text-xl transition-all"
+                    maxLength={1}
+                  />
+                ))}
+              </div>
+              <p className="text-xs text-slate-500 mt-4 text-center">We sent a secure code to <span className="text-blue-400">{email}</span></p>
             </div>
             <button 
               type="submit"

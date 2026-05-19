@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import { API_BASE_URL } from "../utils/api";
 
 const ProfileDetail = () => {
   const { id } = useParams(); // This grabs the ID from the URL bar
@@ -9,9 +10,9 @@ const ProfileDetail = () => {
   useEffect(() => {
     const fetchSingleProfile = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = sessionStorage.getItem("token");
         const res = await axios.get(
-          `http://localhost:5000/api/profiles/${id}`,
+          `${API_BASE_URL}/api/profiles/${id}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           },

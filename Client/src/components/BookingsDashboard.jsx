@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { ReviewModal } from './ReviewModal';
+import { API_BASE_URL } from '../utils/api';
 
 const BookingsDashboard = ({ userRole }) => {
   const [bookings, setBookings] = useState([]);
@@ -11,7 +12,7 @@ const BookingsDashboard = ({ userRole }) => {
     try {
       const token = sessionStorage.getItem('token');
       if (!token) return;
-      const res = await axios.get('http://localhost:5000/api/bookings', {
+      const res = await axios.get(`${API_BASE_URL}/api/bookings`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setBookings(res.data);
@@ -30,7 +31,7 @@ const BookingsDashboard = ({ userRole }) => {
     try {
       const token = sessionStorage.getItem('token');
       await axios.put(
-        `http://localhost:5000/api/bookings/${id}/status`,
+        `${API_BASE_URL}/api/bookings/${id}/status`,
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -44,7 +45,7 @@ const BookingsDashboard = ({ userRole }) => {
     try {
       const token = sessionStorage.getItem('token');
       await axios.post(
-        'http://localhost:5000/api/reviews',
+        `${API_BASE_URL}/api/reviews`,
         { bookingId, rating, comment },
         { headers: { Authorization: `Bearer ${token}` } }
       );

@@ -12,20 +12,28 @@ const User = require('./models/User');
 const Otp = require('./models/Otp');
 const sendEmail = require('./utils/sendEmail');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 
-const JWT_SECRET = "skillbridge_secret_2026"
+const JWT_SECRET = process.env.JWT_SECRET || "skillbridge_secret_2026";
 
 const app = express();
 
+const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 app.use(cors({
-    origin: 'http://localhost:5173', // Allow your React app
+    origin: [clientUrl, 'http://localhost:5173'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
 }));
 
 app.use(express.json());
 
-const MONGO_URI = 'mongodb://127.0.0.1:27017/skillbridge'; 
+const distPath = path.join(__dirname, '../Client/dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+}
+
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/skillbridge'; 
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log("MongoDB Connected Successfully!"))
@@ -102,7 +110,7 @@ app.post('/api/profiles', protectAny, async(req, res) =>{
       {
         fullName: name,
         contactPhone: phone,
-        skills: skills.map(s => s.professional_title)
+        skills: Array.isArray(skills) ? skills.map(s => typeof s === 'string' ? s : (s?.professional_title || '')) : []
       },
       { upsert: true, new: true }
     );
@@ -199,6 +207,36 @@ app.get('/api/profiles', protectRecruiter, async (req, res) => {
     res.json(enrichedProfiles.filter(p => p !== null));
   } catch (err) {
     console.error("Error fetching profiles:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.get('/api/profiles/:userId', protectAny, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Find profile by user ID and populate user email
+    let profile = await Profile.findOne({ user: userId }).populate('user', 'email');
+    
+    if (!profile) {
+      // If profile doesn't exist, we can fetch the user details to return a template profile
+      const worker = await User.findById(userId);
+      if (!worker) {
+        return res.status(404).json({ message: "Worker not found" });
+      }
+      profile = {
+        fullName: "Anonymous Worker",
+        user: { email: worker.email },
+        skills: [],
+        isOnline: false,
+        contactPhone: "Not provided"
+      };
+      return res.json(profile);
+    }
+    
+    res.json(profile);
+  } catch (err) {
+    console.error("Error fetching profile details:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -469,7 +507,17 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 });
 
 
+if (fs.existsSync(distPath)) {
+  app.get(/.*/, (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+} else {
+  app.get(/.*/, (req, res) => {
+    res.send('SkillBridge AI Server is Running! (Frontend build directory not found)');
+  });
+}
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server live on http://localhost:${PORT}`);
+  console.log(`Server live on port ${PORT}`);
 });

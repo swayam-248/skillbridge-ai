@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../utils/api';
 
 const ApplicationsTracker = ({ userRole }) => {
   const [applications, setApplications] = useState([]);
@@ -19,7 +20,7 @@ const ApplicationsTracker = ({ userRole }) => {
   const fetchMyApplications = async () => {
     try {
       const token = sessionStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/applications/me', {
+      const res = await axios.get(`${API_BASE_URL}/api/applications/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setApplications(res.data);
@@ -34,7 +35,7 @@ const ApplicationsTracker = ({ userRole }) => {
     try {
       const token = sessionStorage.getItem('token');
       // For now we'll just fetch all jobs and filter on client or assume recruiter wants their jobs
-      const res = await axios.get('http://localhost:5000/api/jobs', {
+      const res = await axios.get(`${API_BASE_URL}/api/jobs`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setMyJobs(res.data); // In a real app we'd filter by recruiter: me
@@ -49,7 +50,7 @@ const ApplicationsTracker = ({ userRole }) => {
     try {
       setLoading(true);
       const token = sessionStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5000/api/applications/job/${jobId}`, {
+      const res = await axios.get(`${API_BASE_URL}/api/applications/job/${jobId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setApplicants(res.data);

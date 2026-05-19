@@ -1,10 +1,9 @@
 const mongoose = require('mongoose');
 
 const ProfileSchema = new mongoose.Schema({
-  // 👈 THIS IS THE MISSING LINK
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // This must match the name you gave your User model
+    ref: 'User',
     required: true
   },
   fullName: String,

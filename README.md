@@ -24,22 +24,56 @@ SkillBridge AI is a premium, two-sided marketplace designed to help workers tran
 - **Automated Aggregation:** The backend automatically calculates average ratings in real-time, updating the worker's reputation instantly.
 
 ## ✅ Recent Technical Wins
-- [x] **NLP Upgrade:** Switched to `compromise` for smarter skill matching and root-word recognition.
-- [x] **Navigation Speed:** Implemented account-age-based onboarding skips to allow existing users to "login directly."
-- [x] **Recruiter Permissions:** Fixed a critical RBAC bug that was preventing recruiters from saving profiles.
-- [x] **Database Optimization:** Optimized `/api/profiles` with a "User-First" aggregation to ensure the talent pool is never empty.
-- [x] **UI Polish:** Redesigned the Talent Pool with a high-end glassmorphism aesthetic and fixed data structure mismatches.
+
+### 🛠️ Core Infrastructure & Stability
+- **Monorepo Architecture:** Set up **npm workspaces** to allow single-command dependencies installation (`npm install`) and execution. Exposed root scripts (`npm run dev`, `npm run build`, `npm start`, `npm run seed`) for seamless project management.
+- **Express 5 Support:** Refactored routing wildcards to RegExp patterns (`app.get(/.*/)`) to ensure full compatibility with the Express 5 router and prevent backend crashes.
+- **Backend Detail Fetching:** Implemented the missing `GET /api/profiles/:userId` endpoint so worker details load correctly in the talent pool.
+- **Dynamic Path Seeding:** Configured `importData.js` with `path.join(__dirname, ...)` so developers can run database migrations from any directory in the monorepo.
+- **Mongoose Mapping Safety:** Added type and array validation in the profile POST route to safeguard skills parsing and prevent schema-related Node crashes.
+
+### 🎨 Premium Frontend & UX Improvements
+- **Animated Soundwave Feedback:** Created an animated wave component (`Soundwave.jsx`) using CSS keyframes that modulates gradient lines in real-time when voice recording is active.
+- **Shimmering Skeleton Loaders:** Replaced generic full-page loading spinners with shimmering CSS placeholders (`SkeletonCard.jsx` and `SkeletonGrid`) that load cards resembling matching worker profiles.
+- **Split 6-Digit OTP Field:** Replaced standard text inputs with an autofocus-advancing row of 6 inputs in the Login screen. It automatically jumps fields on input, tracks backspace keys to shift focus backward, and supports paste events for 6-digit codes.
+- **Storage Synchronization:** Fixed storage calls in `ProfileDetails.jsx` to load JWT tokens from `sessionStorage` (synchronizing with `AuthContext.jsx`) and resolved authorization header errors.
 
 ## 🛠️ Tech Stack
-- **Frontend:** React.js (Vite), Tailwind CSS, Framer Motion (for animations)
-- **Backend:** Node.js, Express.js
+- **Frontend:** React.js (Vite), Tailwind CSS, Vanilla CSS Animations
+- **Backend:** Node.js, Express.js (Express 5 compatible)
 - **Database:** MongoDB (Mongoose)
-- **NLP:** Compromise.js
+- **NLP:** Compromise.js (Smart root-word stemming)
 - **Security:** JSON Web Tokens (JWT), Nodemailer (OTP)
 
 ---
 
-## 🚀 Upcoming Roadmap
-- **Real-Time WebSockets:** Upgrading the booking engine from HTTP fetching to Socket.io for millisecond-level instant notifications.
-- **Payment Gateway:** Integrating Stripe Connect to handle secure payouts between recruiters and workers.
-- **GPS Integration:** Showing recruiter-worker distance using geolocation APIs.
+## 💻 Getting Started (Local Development)
+
+This project uses **npm workspaces** to manage the full stack within a single monorepo.
+
+1. **Install dependencies for the entire project:**
+   ```bash
+   npm install
+   ```
+2. **Seed the database with NLP skills:**
+   Make sure MongoDB is running on your PC, then run:
+   ```bash
+   npm run seed
+   ```
+3. **Run both frontend and backend concurrently:**
+   ```bash
+   npm run dev
+   ```
+   * Frontend: `http://localhost:5173`
+   * Backend: `http://localhost:5000`
+
+---
+
+## 🚀 Deployment
+
+The project is pre-configured for a **unified deployment** where the backend serves the built React frontend static assets, eliminating CORS issues.
+
+* **Build Command:** `npm run build`
+* **Start Command:** `npm start`
+
+For detailed setup instructions on Render, Vercel, or Railway, check the [Deployment Guide](file:///C:/Users/sahor/.gemini/antigravity/brain/cd9f5d4d-9bb4-47a6-9090-2de4bfe1ac92/artifacts/deployment_guide.md).

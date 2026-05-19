@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import LoadingSpinner from "../components/LoadingSpinner";
+import { SkeletonGrid } from "../components/SkeletonCard";
 import ErrorBoundary from "../components/ErrorBoundary";
 import { Link } from "react-router-dom";
+import { API_BASE_URL } from "../utils/api";
 
 const TalentPool = () => {
   const [allProfiles, setAllProfiles] = useState([]);
@@ -12,8 +13,8 @@ const TalentPool = () => {
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
-        const token = sessionStorage.getItem("token"); // Use sessionStorage for consistency
-        const res = await axios.get("http://localhost:5000/api/profiles", {
+        const token = sessionStorage.getItem("token"); 
+        const res = await axios.get(`${API_BASE_URL}/api/profiles`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setAllProfiles(Array.isArray(res.data) ? res.data : []);
@@ -38,8 +39,6 @@ const TalentPool = () => {
     return matchesName || matchesSkills;
   });
 
-  if (loading) return <LoadingSpinner />;
-
   return (
     <ErrorBoundary>
       <div className="space-y-8 p-6 bg-slate-950 min-h-screen">
@@ -59,7 +58,10 @@ const TalentPool = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {loading ? (
+          <SkeletonGrid count={6} />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredProfiles.length > 0 ? (
             filteredProfiles.map((profile) => (
               <Link 
@@ -118,6 +120,7 @@ const TalentPool = () => {
             </div>
           )}
         </div>
+      )}
       </div>
     </ErrorBoundary>
   );
