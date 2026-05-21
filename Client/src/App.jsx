@@ -81,17 +81,18 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (dbSkills.length === 0) return;
     const rec = createRecognizer(
       (transcript) => {
         if (user?.role === 'worker') {
           setInput(transcript);
-          setFoundSkills(prev => {
-            const newSkills = matchSkills(transcript, dbSkills);
-            const existingTitles = new Set(prev.map(s => s.professional_title));
-            const uniqueNewSkills = newSkills.filter(s => !existingTitles.has(s.professional_title));
-            return [...prev, ...uniqueNewSkills];
-          });
+          if (dbSkills.length > 0) {
+            setFoundSkills(prev => {
+              const newSkills = matchSkills(transcript, dbSkills);
+              const existingTitles = new Set(prev.map(s => s.professional_title));
+              const uniqueNewSkills = newSkills.filter(s => !existingTitles.has(s.professional_title));
+              return [...prev, ...uniqueNewSkills];
+            });
+          }
         } else {
           setProblemText(transcript);
         }
@@ -282,7 +283,7 @@ function App() {
 
   const toggleListen = () => {
     if (!recognizer) {
-      alert("Speech recognition is not supported in this browser.");
+      alert("Speech recognition is not available in this browser. Please try Chrome or Microsoft Edge.");
       return;
     }
     if (isListening) {

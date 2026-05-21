@@ -1,6 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const Skill = require('./models/Skills');
 const Profile = require('./models/Profile');
 const Booking = require('./models/Booking');
@@ -15,7 +15,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
-const JWT_SECRET = process.env.JWT_SECRET || "skillbridge_secret_2026";
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? undefined : "skillbridge_dev_secret");
 
 const app = express();
 
@@ -35,9 +35,46 @@ if (fs.existsSync(distPath)) {
 
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/skillbridge'; 
 
-mongoose.connect(MONGO_URI)
-  .then(() => console.log("MongoDB Connected Successfully!"))
-  .catch(err => console.error("MongoDB Connection Error:", err));
+let mongoConnectionError = null;
+let mongoConnectionPromise = null;
+
+const connectMongo = () => {
+  if (mongoose.connection.readyState === 1) return Promise.resolve(mongoose.connection);
+  if (!mongoConnectionPromise) {
+    mongoConnectionPromise = mongoose.connect(MONGO_URI, {
+      serverSelectionTimeoutMS: 8000
+    })
+      .then(() => {
+        mongoConnectionError = null;
+        console.log("MongoDB Connected Successfully!");
+        return mongoose.connection;
+      })
+      .catch(err => {
+        mongoConnectionPromise = null;
+        mongoConnectionError = err;
+        console.error("MongoDB Connection Error:", err);
+        throw err;
+      });
+  }
+
+  return mongoConnectionPromise;
+};
+
+connectMongo().catch(err => {
+    mongoConnectionError = err;
+  });
+
+const requireMongo = async (req, res, next) => {
+  try {
+    await connectMongo();
+    next();
+  } catch (err) {
+    res.status(503).json({
+      message: 'Database connection unavailable',
+      error: err.message
+    });
+  }
+};
 
 
 
@@ -85,7 +122,7 @@ const protectAny = (req, res, next) => {
     res.status(401).json({ message: "Invalid Token" });
   }
 };
-app.get('/api/skills', async(req, res)=>{
+app.get('/api/skills', requireMongo, async(req, res)=>{
   try{
     const allSkills = await Skill.find();
     res.json(allSkills);
@@ -100,6 +137,22 @@ app.get('/api/skills', async(req, res)=>{
 app.get('/', (req, res) => {
   res.send('SkillBridge AI Server is Running and Database is connected!');
 });
+
+app.get('/api/health', (req, res) => {
+  res.json({
+    ok: true,
+    mongoReadyState: mongoose.connection.readyState,
+    hasMongoUri: Boolean(process.env.MONGO_URI || process.env.MONGODB_URI),
+    hasJwtSecret: Boolean(process.env.JWT_SECRET),
+    hasEmailConfig: Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS),
+    hasGoogleConfig: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+    mongoError: mongoConnectionError
+      ? { name: mongoConnectionError.name, message: mongoConnectionError.message }
+      : null
+  });
+});
+
+app.use('/api', requireMongo);
 
 app.post('/api/profiles', protectAny, async(req, res) =>{
   try{
