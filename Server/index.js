@@ -507,6 +507,116 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 });
 
 
+app.get('/api/auth/google', (req, res) => {
+  const { role } = req.query;
+  const userRole = role === 'recruiter' ? 'recruiter' : 'worker';
+
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    return res.status(500).send("Google OAuth is not configured. Please set GOOGLE_CLIENT_ID in your environment variables.");
+  }
+
+  const host = req.get('host');
+  const protocol = (host.includes('localhost') || host.includes('127.0.0.1')) ? 'http' : 'https';
+  const callbackUrl = `${protocol}://${host}/api/auth/google/callback`;
+
+  const googleUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+    `client_id=${process.env.GOOGLE_CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(callbackUrl)}` +
+    `&response_type=code` +
+    `&scope=${encodeURIComponent('openid email profile')}` +
+    `&state=${userRole}`;
+
+  res.redirect(googleUrl);
+});
+
+app.get('/api/auth/google/callback', async (req, res) => {
+  const { code, state } = req.query; // state contains the role
+
+  if (!code) {
+    return res.status(400).send("Google authorization code missing.");
+  }
+
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(500).send("Google OAuth configuration is missing on the server.");
+  }
+
+  const host = req.get('host');
+  const protocol = (host.includes('localhost') || host.includes('127.0.0.1')) ? 'http' : 'https';
+  const callbackUrl = `${protocol}://${host}/api/auth/google/callback`;
+
+  try {
+    // Exchange authorization code for tokens using native fetch
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        code,
+        redirect_uri: callbackUrl,
+        grant_type: 'authorization_code'
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error("Google Token Exchange Failed:", data);
+      return res.status(400).send("Google token exchange failed: " + (data.error_description || data.error));
+    }
+
+    const { id_token } = data;
+    const decoded = jwt.decode(id_token);
+    if (!decoded || !decoded.email) {
+      return res.status(400).send("Invalid Google ID token.");
+    }
+
+    const email = decoded.email.toLowerCase().trim();
+    const name = decoded.name;
+
+    // Find or create user
+    let user = await User.findOne({ email });
+    let isNewUser = false;
+    if (!user) {
+      const role = state === 'recruiter' ? 'recruiter' : 'worker';
+      user = await User.create({ email, role });
+      isNewUser = true;
+      console.log(`OAuth: Created new user [${email}] as [${user.role}]`);
+    }
+
+    // Find or create profile
+    let profile = await Profile.findOne({ user: user._id });
+    if (!profile) {
+      profile = await Profile.create({
+        user: user._id,
+        fullName: name || 'Anonymous User',
+        skills: [],
+        isOnline: false,
+        contactPhone: ''
+      });
+      console.log(`OAuth: Created new profile for [${email}]`);
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Determine profile completeness
+    const isExistingUser = !isNewUser || !user.createdAt || (new Date(user.createdAt).getTime() < (Date.now() - 10000));
+    const isComplete = user.role === 'recruiter' || isExistingUser || !!(profile.fullName && profile.contactPhone);
+
+    // Dynamic redirect back to the client app
+    const redirectOrigin = (host.includes('localhost') || host.includes('127.0.0.1')) ? clientUrl : `${protocol}://${host}`;
+    res.redirect(`${redirectOrigin}/login?token=${token}&email=${encodeURIComponent(user.email)}&role=${user.role}&isComplete=${isComplete}`);
+  } catch (err) {
+    console.error("Google OAuth callback error:", err);
+    res.status(500).send("Internal server error during Google OAuth callback.");
+  }
+});
+
+
 if (fs.existsSync(distPath)) {
   app.get(/.*/, (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
@@ -517,7 +627,11 @@ if (fs.existsSync(distPath)) {
   });
 }
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server live on port ${PORT}`);
-});
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server live on port ${PORT}`);
+  });
+}
+
+module.exports = app;

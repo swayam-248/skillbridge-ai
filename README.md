@@ -37,6 +37,7 @@ SkillBridge AI is a premium, two-sided marketplace designed to help workers tran
 - **Shimmering Skeleton Loaders:** Replaced generic full-page loading spinners with shimmering CSS placeholders (`SkeletonCard.jsx` and `SkeletonGrid`) that load cards resembling matching worker profiles.
 - **Split 6-Digit OTP Field:** Replaced standard text inputs with an autofocus-advancing row of 6 inputs in the Login screen. It automatically jumps fields on input, tracks backspace keys to shift focus backward, and supports paste events for 6-digit codes.
 - **Storage Synchronization:** Fixed storage calls in `ProfileDetails.jsx` to load JWT tokens from `sessionStorage` (synchronizing with `AuthContext.jsx`) and resolved authorization header errors.
+- **Google OAuth Integration:** Integrated native Google Sign-In with query parameter session binding and automatic address bar sanitization, coupled with a customized branded Google button.
 
 ## 🛠️ Tech Stack
 - **Frontend:** React.js (Vite), Tailwind CSS, Vanilla CSS Animations
@@ -71,9 +72,23 @@ This project uses **npm workspaces** to manage the full stack within a single mo
 
 ## 🚀 Deployment
 
-The project is pre-configured for a **unified deployment** where the backend serves the built React frontend static assets, eliminating CORS issues.
+This project is configured for seamless monorepo deployment on **Vercel** as a unified service (static frontend + serverless Express backend).
 
-* **Build Command:** `npm run build`
-* **Start Command:** `npm start`
+### Vercel Setup
+1. Import the project root into Vercel.
+2. Set the build settings:
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `Client/dist`
+3. Configure the following environment variables:
+   - `GOOGLE_CLIENT_ID`: Google OAuth Client ID.
+   - `GOOGLE_CLIENT_SECRET`: Google OAuth Client Secret.
+   - `MONGO_URI`: MongoDB Atlas connection string.
+   - `JWT_SECRET`: Secret key for JWT session tokens.
+   - `CLIENT_URL`: Optional (defaults to request origin in production).
 
-For detailed setup instructions on Render, Vercel, or Railway, check the [Deployment Guide](file:///C:/Users/sahor/.gemini/antigravity/brain/cd9f5d4d-9bb4-47a6-9090-2de4bfe1ac92/artifacts/deployment_guide.md).
+### Google Cloud Console Configuration
+To enable Google Sign-In, configure the credentials inside your Google Cloud Console:
+- **Authorized JavaScript origins:** `http://localhost:5000`, `http://localhost:5173`, and `https://<your-vercel-domain>.vercel.app`
+- **Authorized redirect URIs:** `http://localhost:5000/api/auth/google/callback` and `https://<your-vercel-domain>.vercel.app/api/auth/google/callback`
+
+For detailed setup instructions on other platforms like Render, check the [Deployment Guide](file:///C:/Users/sahor/.gemini/antigravity/brain/cd9f5d4d-9bb4-47a6-9090-2de4bfe1ac92/artifacts/deployment_guide.md).
