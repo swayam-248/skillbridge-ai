@@ -93,7 +93,7 @@ const Login = () => {
       alert("Logged in successfully!");
       navigate('/dashboard');
     } catch (err) {
-      alert("Invalid Code");
+      alert(err);
     }
   };
 
