@@ -15,6 +15,21 @@ const sendEmail = require('./utils/sendEmail');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
+const { validateBookingTransition } = require('./utils/bookingStateMachine');
+
+// Secure in-memory store for single-use OAuth authorization codes (TTL: 60 seconds)
+const oauthAuthCodes = new Map();
+
+function createOAuthExchangeCode(payload) {
+  const code = crypto.randomBytes(32).toString('hex');
+  oauthAuthCodes.set(code, {
+    ...payload,
+    expiresAt: Date.now() + 60000 // 60s
+  });
+  setTimeout(() => oauthAuthCodes.delete(code), 65000);
+  return code;
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? undefined : "skillbridge_dev_secret");
 
@@ -436,15 +451,38 @@ app.put('/api/applications/:id/status', protectRecruiter, async (req, res) => {
 app.post('/api/bookings', protectRecruiter, async (req, res) => {
   try {
     const { workerId, jobDescription } = req.body;
+    if (!workerId || !jobDescription || !jobDescription.trim()) {
+      return res.status(400).json({ message: "Worker ID and job description are required." });
+    }
+
+    const workerUser = await User.findById(workerId);
+    if (!workerUser || workerUser.role !== 'worker') {
+      return res.status(404).json({ message: "Worker profile not found." });
+    }
+
+    // Prevent duplicate concurrent pending/accepted booking requests between this recruiter and worker
+    const existingActive = await Booking.findOne({
+      worker: workerId,
+      recruiter: req.user.userId,
+      status: { $in: ['pending', 'accepted'] }
+    });
+    if (existingActive) {
+      return res.status(409).json({
+        message: `An active booking (${existingActive.status}) already exists with this worker.`
+      });
+    }
+
     const booking = new Booking({
       worker: workerId,
       recruiter: req.user.userId,
-      jobDescription
+      jobDescription: jobDescription.trim(),
+      status: 'pending'
     });
     const savedBooking = await booking.save();
     res.status(201).json(savedBooking);
   } catch (err) {
-    res.status(500).json({ message: "Error creating booking" });
+    console.error("Booking creation error:", err);
+    res.status(500).json({ message: "Error creating booking." });
   }
 });
 
@@ -468,17 +506,57 @@ app.get('/api/bookings', protectAny, async (req, res) => {
 app.put('/api/bookings/:id/status', protectAny, async (req, res) => {
   try {
     const { status } = req.body;
-    const updateData = { status };
-    if (status === 'completed') updateData.completedAt = Date.now();
-    
-    const booking = await Booking.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true }
+    if (!status) {
+      return res.status(400).json({ message: "New status is required." });
+    }
+
+    const targetStatus = status.toLowerCase();
+
+    // 1. Fetch current booking to verify state transition & authorization
+    const existing = await Booking.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: "Booking not found." });
+    }
+
+    const transitionCheck = validateBookingTransition(
+      existing.status,
+      targetStatus,
+      req.user,
+      existing.worker,
+      existing.recruiter
     );
-    res.json(booking);
+
+    if (!transitionCheck.valid) {
+      return res.status(transitionCheck.code || 400).json({ message: transitionCheck.message });
+    }
+
+    // 2. Atomic Compare-And-Swap update to prevent race conditions (e.g. concurrent accept/cancel)
+    const updateData = { status: targetStatus };
+    if (targetStatus === 'completed') {
+      updateData.completedAt = new Date();
+    }
+
+    const updatedBooking = await Booking.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        status: existing.status // Ensures atomic CAS; fails if state changed between read and write
+      },
+      { $set: updateData },
+      { new: true }
+    )
+      .populate('worker', 'email')
+      .populate('recruiter', 'email');
+
+    if (!updatedBooking) {
+      return res.status(409).json({
+        message: "Concurrent update conflict: The booking status was modified by another operation. Please refresh."
+      });
+    }
+
+    res.json(updatedBooking);
   } catch (err) {
-    res.status(500).json({ message: "Error updating booking status" });
+    console.error("Booking status update error:", err);
+    res.status(500).json({ message: "Error updating booking status." });
   }
 });
 
@@ -650,6 +728,32 @@ app.post('/api/auth/login', async (req, res) => {
     console.error("Error in /login:", err);
     res.status(500).json({ message: "Error logging in" });
   }
+});
+
+// Single-use OAuth authorization code exchange endpoint (moves tokens out of the URL)
+app.post('/api/auth/exchange-code', (req, res) => {
+  const { code } = req.body;
+  if (!code) {
+    return res.status(400).json({ message: "Authorization exchange code is required." });
+  }
+
+  const session = oauthAuthCodes.get(code);
+  if (!session) {
+    return res.status(400).json({ message: "Invalid or expired authorization code." });
+  }
+
+  if (Date.now() > session.expiresAt) {
+    oauthAuthCodes.delete(code);
+    return res.status(400).json({ message: "Authorization code has expired." });
+  }
+
+  // Single-use: immediately delete to prevent replay attacks
+  oauthAuthCodes.delete(code);
+
+  return res.json({
+    token: session.token,
+    user: session.user
+  });
 });
 
 app.post('/api/auth/send-otp', async(req, res) =>{
@@ -837,11 +941,25 @@ app.get('/api/auth/google/callback', async (req, res) => {
 
     // Determine profile completeness
     const isExistingUser = !isNewUser || !user.createdAt || (new Date(user.createdAt).getTime() < (Date.now() - 10000));
-    const isComplete = user.role === 'recruiter' || isExistingUser || !!(profile.fullName && profile.contactPhone);
+    // Generate short-lived single-use authorization code so JWT never touches the URL query string
+    const exchangeCode = createOAuthExchangeCode({
+      token,
+      user: {
+        email: user.email,
+        role: user.role,
+        isComplete,
+        fullName: profile?.fullName,
+        contactPhone: profile?.contactPhone,
+        skills: profile?.skills,
+        isOnline: profile?.isOnline,
+        averageRating: profile?.rating,
+        reviewCount: profile?.reviewCount
+      }
+    });
 
-    // Dynamic redirect back to the client app
+    // Dynamic redirect back to the client app with one-time exchange code
     const redirectOrigin = (host.includes('localhost') || host.includes('127.0.0.1')) ? clientUrl : `${protocol}://${host}`;
-    res.redirect(`${redirectOrigin}/login?token=${token}&email=${encodeURIComponent(user.email)}&role=${user.role}&isComplete=${isComplete}`);
+    res.redirect(`${redirectOrigin}/login?code=${exchangeCode}`);
   } catch (err) {
     console.error("Google OAuth callback error:", err);
     res.status(500).send("Internal server error during Google OAuth callback.");

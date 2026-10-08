@@ -64,7 +64,7 @@ const BookingsDashboard = ({ userRole }) => {
       fetchBookings();
     } catch (err) {
       console.error(err);
-      alert("Error updating booking status.");
+      alert(err.response?.data?.message || "Error updating booking status.");
     }
   };
 

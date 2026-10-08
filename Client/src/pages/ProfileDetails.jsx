@@ -42,7 +42,7 @@ const ProfileDetail = () => {
       setBookingOpen(false);
     } catch (err) {
       console.error(err);
-      alert("Error sending booking request.");
+      alert(err.response?.data?.message || "Error sending booking request.");
     }
   };
 

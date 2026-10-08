@@ -19,22 +19,43 @@ const Login = () => {
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // Handle OAuth callback if redirected from Google
+  // Handle OAuth callback if redirected from Google (secure one-time code exchange)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get("code");
     const tokenParam = params.get("token");
-    const emailParam = params.get("email");
-    const roleParam = params.get("role");
-    const isCompleteParam = params.get("isComplete") === "true";
 
-    if (tokenParam && emailParam && roleParam) {
-      login(tokenParam, {
-        email: emailParam,
-        role: roleParam,
-        isComplete: isCompleteParam,
-      });
-      window.history.replaceState({}, document.title, window.location.pathname);
-      navigate("/dashboard");
+    if (codeParam) {
+      setLoading(true);
+      axios.post(`${API_BASE_URL}/api/auth/exchange-code`, { code: codeParam })
+        .then((res) => {
+          login(res.data.token, res.data.user);
+          window.history.replaceState({}, document.title, window.location.pathname);
+          navigate("/dashboard");
+        })
+        .catch((err) => {
+          console.error("OAuth code exchange error:", err);
+          setErrorMessage(err.response?.data?.message || "Failed to complete Google authentication.");
+          window.history.replaceState({}, document.title, window.location.pathname);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else if (tokenParam) {
+      // Backward-compatible fallback for legacy query parameter tokens
+      const emailParam = params.get("email");
+      const roleParam = params.get("role");
+      const isCompleteParam = params.get("isComplete") === "true";
+
+      if (emailParam && roleParam) {
+        login(tokenParam, {
+          email: emailParam,
+          role: roleParam,
+          isComplete: isCompleteParam,
+        });
+        window.history.replaceState({}, document.title, window.location.pathname);
+        navigate("/dashboard");
+      }
     }
   }, [login, navigate]);
 

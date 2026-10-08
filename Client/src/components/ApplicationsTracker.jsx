@@ -92,7 +92,7 @@ const ApplicationsTracker = ({ userRole }) => {
       setSelectedWorkerForBooking(null);
     } catch (err) {
       console.error(err);
-      alert("Failed to send booking request.");
+      alert(err.response?.data?.message || "Failed to send booking request.");
     }
   };
 
