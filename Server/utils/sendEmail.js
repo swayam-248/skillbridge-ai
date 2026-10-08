@@ -2,7 +2,9 @@ const nodemailer = require('nodemailer');
 
 const sendEmail = async (email, otp) =>{
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    throw new Error('Email credentials are not configured');
+    console.warn(`⚠️ EMAIL CONFIGURATION MISSING: Email credentials are not configured in Server/.env.`);
+    console.log(`✉️ [SIMULATED EMAIL] To: ${email} | Subject: Your SkillBridge Access Code | Body: Your one-time login code is : ${otp}`);
+    return;
   }
 
   const transporter = nodemailer.createTransport({

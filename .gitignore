@@ -34,3 +34,4 @@ Client/.env.*
 *.sln
 *.sw?
 .vercel
+*.zip

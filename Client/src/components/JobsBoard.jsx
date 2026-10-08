@@ -1,20 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { API_BASE_URL } from '../utils/api';
+/* eslint-disable react-hooks/set-state-in-effect */
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { API_BASE_URL } from "../utils/api";
 
 const JobsBoard = ({ userRole }) => {
   const [jobs, setJobs] = useState([]);
+  const [myApplications, setMyApplications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [search, setSearch] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [applyingId, setApplyingId] = useState(null);
 
   const fetchJobs = async () => {
     try {
-      const token = sessionStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/jobs`, {
-        headers: { Authorization: `Bearer ${token}` }
+      setLoading(true);
+      const token = sessionStorage.getItem("token");
+      const url =
+        userRole === "recruiter"
+          ? `${API_BASE_URL}/api/jobs?recruiter=me`
+          : `${API_BASE_URL}/api/jobs`;
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setJobs(res.data);
+      setJobs(Array.isArray(res.data) ? res.data : []);
+
+      if (userRole === "worker") {
+        const appsRes = await axios.get(`${API_BASE_URL}/api/applications/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setMyApplications(Array.isArray(appsRes.data) ? appsRes.data : []);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -24,95 +41,250 @@ const JobsBoard = ({ userRole }) => {
 
   useEffect(() => {
     fetchJobs();
-  }, []);
+  }, [userRole]);
 
-  const handlePostJob = async (e) => {
-    e.preventDefault();
+  const handlePostJob = async (event) => {
+    event.preventDefault();
+    if (!title.trim() || !description.trim()) return;
+    setPosting(true);
     try {
-      const token = sessionStorage.getItem('token');
-      await axios.post(`${API_BASE_URL}/api/jobs`, { title, description }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setTitle('');
-      setDescription('');
+      const token = sessionStorage.getItem("token");
+      await axios.post(
+        `${API_BASE_URL}/api/jobs`,
+        { title, description },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      setTitle("");
+      setDescription("");
       fetchJobs();
-      alert('Job posted successfully!');
+      alert("Job posting published successfully!");
     } catch (err) {
       console.error(err);
-      alert('Failed to post job');
+      alert("Failed to post job");
+    } finally {
+      setPosting(false);
     }
   };
 
-  const handleApply = async (id) => {
+  const handleApply = async (jobId) => {
     try {
-      const token = sessionStorage.getItem('token');
-      await axios.post(`${API_BASE_URL}/api/jobs/${id}/apply`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      alert('Applied successfully! Recruiter will be notified.');
+      setApplyingId(jobId);
+      const token = sessionStorage.getItem("token");
+      await axios.post(
+        `${API_BASE_URL}/api/jobs/${jobId}/apply`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      alert("Applied successfully! Recruiter has been notified.");
+      fetchJobs();
     } catch (err) {
       console.error(err);
-      alert('Error applying');
+      const msg = err.response?.data?.message || "Error applying for job.";
+      alert(msg);
+    } finally {
+      setApplyingId(null);
     }
   };
 
-  if (userRole === 'recruiter') {
+  const appliedJobIds = new Set(
+    myApplications.map((app) => (app.job?._id || app.job))
+  );
+
+  const filteredJobs = jobs.filter((job) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
     return (
-      <div className="bg-slate-900/40 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-2xl border border-slate-800/50 max-w-2xl mx-auto mt-12 animate-in fade-in duration-500">
-        <h2 className="text-3xl font-black text-white mb-6">Post a New Job</h2>
-        <form onSubmit={handlePostJob} className="space-y-6">
-          <div>
-            <label className="block text-slate-400 font-bold mb-2">Job Title</label>
-            <input 
-              required
-              value={title} 
-              onChange={e => setTitle(e.target.value)} 
-              className="w-full p-4 bg-slate-950/50 border border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-white"
-              placeholder="e.g. Master Plumber Needed" 
-            />
+      job.title?.toLowerCase().includes(q) ||
+      job.description?.toLowerCase().includes(q) ||
+      job.recruiter?.email?.toLowerCase().includes(q)
+    );
+  });
+
+  if (userRole === "recruiter") {
+    return (
+      <div className="space-y-8">
+        <div className="border-b border-slate-200 pb-6">
+          <span className="text-xs font-bold uppercase tracking-widest text-blue-600">
+            Recruiter Tools
+          </span>
+          <h1 className="font-display text-3xl font-extrabold text-slate-900 mt-1">
+            Job Board & Open Roles
+          </h1>
+          <p className="text-sm text-slate-600 mt-1">
+            Post open positions for trade and skilled labor candidates to apply.
+          </p>
+        </div>
+
+        <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+          {/* Post Form */}
+          <div className="glass-card p-7 bg-white border border-slate-200">
+            <h2 className="font-display text-xl font-bold text-slate-900 mb-2">
+              Create New Job Opening
+            </h2>
+            <p className="text-xs text-slate-500 mb-6">
+              Detail the scope, location, and requirements.
+            </p>
+
+            <form onSubmit={handlePostJob} className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+                  Role Title
+                </label>
+                <input
+                  required
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="glass-input"
+                  placeholder="e.g. Certified Industrial Electrician / Plumbing Technician"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+                  Scope & Requirements
+                </label>
+                <textarea
+                  required
+                  rows={5}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="glass-input resize-none"
+                  placeholder="Describe duties, expected tools, schedule, location, and payment terms..."
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={posting}
+                className="btn-primary w-full"
+              >
+                {posting ? "Publishing Job..." : "Publish Job Opening"}
+              </button>
+            </form>
           </div>
-          <div>
-            <label className="block text-slate-400 font-bold mb-2">Description & Requirements</label>
-            <textarea 
-              required
-              rows={4}
-              value={description} 
-              onChange={e => setDescription(e.target.value)} 
-              className="w-full p-4 bg-slate-950/50 border border-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 text-white"
-              placeholder="Detail the job..." 
-            />
+
+          {/* Recruiter's Posted Jobs */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-lg font-bold text-slate-900">
+                Your Active Listings
+              </h2>
+              <span className="badge badge-blue">{jobs.length} Posted</span>
+            </div>
+
+            {loading ? (
+              <div className="p-8 text-center text-xs text-slate-400">Loading listings...</div>
+            ) : jobs.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-xs text-slate-500">
+                You haven't posted any jobs yet. Create your first opening using the form.
+              </div>
+            ) : (
+              jobs.map((job) => (
+                <div key={job._id} className="glass-card p-5 space-y-2 bg-white border border-slate-200">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="font-bold text-slate-900 text-base">{job.title}</h3>
+                    <span className="badge badge-emerald">Open</span>
+                  </div>
+                  <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
+                    {job.description}
+                  </p>
+                  <p className="text-[11px] text-slate-400 pt-2 border-t border-slate-100">
+                    Posted on {new Date(job.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
-          <button type="submit" className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-900/20">
-            Post Job to Board
-          </button>
-        </form>
+        </div>
       </div>
     );
   }
 
+  // Worker View
   return (
-    <div className="animate-in fade-in duration-500">
-      <h2 className="text-3xl font-black text-white mb-8 tracking-tight">Available Jobs</h2>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 md:flex-row md:items-end md:justify-between">
+        <div>
+          <span className="text-xs font-bold uppercase tracking-widest text-blue-600">
+            Work Opportunities
+          </span>
+          <h1 className="font-display text-3xl font-extrabold text-slate-900 mt-1">
+            Available Jobs
+          </h1>
+          <p className="text-sm text-slate-600 mt-1">
+            Browse openings posted by verified recruiters and apply with one click.
+          </p>
+        </div>
+
+        <div className="w-full md:w-72">
+          <input
+            type="text"
+            placeholder="Search roles or skills..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="glass-input text-xs"
+          />
+        </div>
+      </div>
+
       {loading ? (
-        <div className="text-center text-slate-400">Loading jobs...</div>
-      ) : jobs.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {jobs.map(job => (
-            <div key={job._id} className="bg-slate-900/40 backdrop-blur-xl p-8 rounded-[2rem] shadow-2xl border border-slate-800/50 hover:border-slate-700 transition-colors">
-              <h3 className="text-2xl font-black text-white mb-2">{job.title}</h3>
-              <span className="inline-block px-3 py-1 bg-blue-900/30 text-blue-400 border border-blue-800/50 rounded-full text-xs font-bold mb-4">
-                Recruiter: {job.recruiter?.email || 'Unknown'}
-              </span>
-              <p className="text-slate-300 font-medium mb-6 line-clamp-3">{job.description}</p>
-              <button onClick={() => handleApply(job._id)} className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 transition-all">
-                Apply Now
-              </button>
-            </div>
-          ))}
+        <div className="p-12 text-center text-sm text-slate-400">Loading jobs...</div>
+      ) : filteredJobs.length === 0 ? (
+        <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-12 text-center">
+          <div className="text-4xl mb-3">💼</div>
+          <p className="font-bold text-slate-900 text-base">No open positions found</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Check back soon as recruiters publish new opportunities regularly.
+          </p>
         </div>
       ) : (
-        <div className="text-center py-20 bg-slate-900/40 rounded-[2.5rem] border border-slate-800/50">
-          <p className="text-slate-400 font-bold uppercase tracking-widest">No jobs available right now.</p>
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {filteredJobs.map((job) => {
+            const hasApplied = appliedJobIds.has(job._id);
+
+            return (
+              <article key={job._id} className="glass-card-hover p-6 flex flex-col justify-between bg-white border border-slate-200">
+                <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="badge badge-blue">
+                      Verified Recruiter
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      {new Date(job.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  <h3 className="mt-3 text-lg font-bold text-slate-900">{job.title}</h3>
+                  <p className="mt-1 text-xs text-slate-500 truncate">
+                    Recruiter: {job.recruiter?.email}
+                  </p>
+
+                  <p className="mt-4 text-xs text-slate-600 leading-relaxed line-clamp-4">
+                    {job.description}
+                  </p>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-slate-100">
+                  {hasApplied ? (
+                    <button
+                      disabled
+                      className="w-full rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-700 cursor-default"
+                    >
+                      ✓ Application Submitted
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleApply(job._id)}
+                      disabled={applyingId === job._id}
+                      className="btn-primary w-full text-xs"
+                    >
+                      {applyingId === job._id ? "Submitting..." : "Apply for Position"}
+                    </button>
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </div>

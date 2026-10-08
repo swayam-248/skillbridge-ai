@@ -4,20 +4,20 @@ const Soundwave = ({ isListening }) => {
   if (!isListening) return null;
 
   return (
-    <div className="flex items-center justify-center gap-[4px] h-6 px-4 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full">
-      {[...Array(9)].map((_, i) => (
+    <div className="flex h-7 items-center justify-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 shadow-xs">
+      {[...Array(8)].map((_, i) => (
         <span
           key={i}
-          className="w-[3px] bg-gradient-to-t from-blue-500 to-indigo-400 rounded-full animate-soundwave"
+          className="w-[2px] rounded-full bg-blue-600 animate-soundwave"
           style={{
             height: '100%',
-            animationDelay: `${i * 0.1}s`,
-            animationDuration: `${0.6 + (i % 3) * 0.2}s`,
+            animationDelay: `${i * 0.09}s`,
+            animationDuration: `${0.65 + (i % 4) * 0.15}s`,
             transformOrigin: 'center',
           }}
         />
       ))}
-      <span className="text-[10px] font-black uppercase tracking-widest text-blue-400 ml-2 animate-pulse">
+      <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-700">
         Listening
       </span>
     </div>

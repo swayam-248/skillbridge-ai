@@ -8,6 +8,7 @@ const Review = require('./models/Review');
 const Job = require('./models/Job');
 const Application = require('./models/Application');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const User = require('./models/User');
 const Otp = require('./models/Otp');
 const sendEmail = require('./utils/sendEmail');
@@ -156,13 +157,14 @@ app.use('/api', requireMongo);
 
 app.post('/api/profiles', protectAny, async(req, res) =>{
   try{
-    const { name , phone, skills} = req.body;
+    const { name , phone, skills, bio } = req.body;
 
     const savedProfile = await Profile.findOneAndUpdate(
       { user: req.user.userId },
       {
-        fullName: name,
-        contactPhone: phone,
+        fullName: typeof name === 'string' ? name.trim() : name,
+        contactPhone: typeof phone === 'string' ? phone.trim() : phone,
+        bio: typeof bio === 'string' ? bio.trim() : '',
         skills: Array.isArray(skills) ? skills.map(s => typeof s === 'string' ? s : (s?.professional_title || '')) : []
       },
       { upsert: true, new: true }
@@ -268,26 +270,43 @@ app.get('/api/profiles/:userId', protectAny, async (req, res) => {
   try {
     const { userId } = req.params;
     
-    // Find profile by user ID and populate user email
     let profile = await Profile.findOne({ user: userId }).populate('user', 'email');
     
     if (!profile) {
-      // If profile doesn't exist, we can fetch the user details to return a template profile
       const worker = await User.findById(userId);
       if (!worker) {
         return res.status(404).json({ message: "Worker not found" });
       }
-      profile = {
+      return res.json({
         fullName: "Anonymous Worker",
-        user: { email: worker.email },
+        user: { _id: worker._id, email: worker.email },
         skills: [],
         isOnline: false,
-        contactPhone: "Not provided"
-      };
-      return res.json(profile);
+        contactPhone: "Not provided",
+        bio: "",
+        averageRating: "0.0",
+        reviewCount: 0,
+        reviews: [],
+        workHistory: []
+      });
     }
+
+    const reviews = await Review.find({ worker: userId }).sort({ createdAt: -1 });
+    const avgRating = reviews.length > 0 
+      ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1)
+      : (profile.rating ? profile.rating.toFixed(1) : "0.0");
+
+    const workHistory = await Booking.find({ worker: userId, status: 'completed' })
+      .populate('recruiter', 'email')
+      .sort({ completedAt: -1 });
     
-    res.json(profile);
+    res.json({
+      ...profile._doc,
+      averageRating: avgRating,
+      reviewCount: reviews.length,
+      reviews,
+      workHistory
+    });
   } catch (err) {
     console.error("Error fetching profile details:", err);
     res.status(500).json({ message: "Server error" });
@@ -336,7 +355,12 @@ app.post('/api/jobs', protectRecruiter, async (req, res) => {
 
 app.get('/api/jobs', protectAny, async (req, res) => {
   try {
-    const jobs = await Job.find({ status: 'open' }).populate('recruiter', 'email').sort({createdAt: -1});
+    const { recruiter } = req.query;
+    let query = { status: 'open' };
+    if (req.user.role === 'recruiter' && recruiter === 'me') {
+      query = { recruiter: req.user.userId };
+    }
+    const jobs = await Job.find(query).populate('recruiter', 'email').sort({createdAt: -1});
     res.json(jobs);
   } catch (err) {
     res.status(500).json({ message: "Error fetching jobs" });
@@ -387,6 +411,25 @@ app.get('/api/applications/job/:jobId', protectRecruiter, async (req, res) => {
     res.json(enriched);
   } catch (err) {
     res.status(500).json({ message: "Error fetching applicants" });
+  }
+});
+
+app.put('/api/applications/:id/status', protectRecruiter, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['pending', 'reviewed', 'accepted', 'rejected'].includes(status)) {
+      return res.status(400).json({ message: "Invalid application status" });
+    }
+    const updatedApp = await Application.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    ).populate('worker', 'email').populate('job');
+
+    if (!updatedApp) return res.status(404).json({ message: "Application not found" });
+    res.json(updatedApp);
+  } catch (err) {
+    res.status(500).json({ message: "Error updating application status" });
   }
 });
 
@@ -457,19 +500,155 @@ app.post('/api/reviews', protectRecruiter, async (req, res) => {
     });
     await review.save();
     
-    // Update worker profile rating
+    // Update worker profile rating accurately
     const profile = await Profile.findOne({ user: booking.worker });
     if (profile) {
-      const newCount = profile.reviewCount + 1;
-      const newRating = ((profile.rating * profile.reviewCount) + rating) / newCount;
-      profile.reviewCount = newCount;
-      profile.rating = newRating;
+      const allWorkerReviews = await Review.find({ worker: booking.worker });
+      const totalScore = allWorkerReviews.reduce((sum, r) => sum + Number(r.rating || 0), 0);
+      const avg = allWorkerReviews.length > 0 ? (totalScore / allWorkerReviews.length) : rating;
+      profile.reviewCount = allWorkerReviews.length;
+      profile.rating = Number(avg.toFixed(1));
       await profile.save();
     }
     
     res.status(201).json(review);
   } catch (err) {
     res.status(500).json({ message: "Error submitting review" });
+  }
+});
+
+// EMAIL & PASSWORD AUTHENTICATION
+app.post('/api/auth/register', async (req, res) => {
+  let { email, password, role } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password are required" });
+  }
+
+  email = email.trim().toLowerCase();
+  password = String(password).trim();
+
+  if (password.length < 6) {
+    return res.status(400).json({ message: "Password must be at least 6 characters" });
+  }
+
+  try {
+    let existingUser = await User.findOne({ email });
+    if (existingUser) {
+      if (existingUser.password) {
+        return res.status(400).json({ message: "Email is already registered. Please log in." });
+      } else {
+        // Upgrade existing OAuth/OTP user with a password
+        const hashedPassword = await bcrypt.hash(password, 10);
+        existingUser.password = hashedPassword;
+        if (role) existingUser.role = role;
+        await existingUser.save();
+
+        const token = jwt.sign(
+          { userId: existingUser._id, role: existingUser.role },
+          JWT_SECRET,
+          { expiresIn: '24h' }
+        );
+
+        const profile = await Profile.findOne({ user: existingUser._id });
+        const isComplete = existingUser.role === 'recruiter' || Boolean(profile && profile.skills?.length > 0);
+
+        return res.status(200).json({
+          token,
+          user: {
+            email: existingUser.email,
+            role: existingUser.role,
+            isComplete,
+            fullName: profile?.fullName,
+            contactPhone: profile?.contactPhone,
+            skills: profile?.skills,
+            isOnline: profile?.isOnline,
+            averageRating: profile?.rating,
+            reviewCount: profile?.reviewCount
+          }
+        });
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const userRole = role === 'recruiter' ? 'recruiter' : 'worker';
+    const newUser = await User.create({
+      email,
+      password: hashedPassword,
+      role: userRole
+    });
+
+    const token = jwt.sign(
+      { userId: newUser._id, role: newUser.role },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    const isComplete = userRole === 'recruiter';
+
+    res.status(201).json({
+      token,
+      user: {
+        email: newUser.email,
+        role: newUser.role,
+        isComplete
+      }
+    });
+  } catch (err) {
+    console.error("Error in /register:", err);
+    res.status(500).json({ message: "Error registering user" });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  let { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password are required" });
+  }
+
+  email = email.trim().toLowerCase();
+  password = String(password).trim();
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "Account not found. Please register first." });
+    }
+
+    if (!user.password) {
+      return res.status(400).json({ message: "This account was signed up via Google. Please log in with Google." });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Incorrect password. Please try again." });
+    }
+
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    const profile = await Profile.findOne({ user: user._id });
+    const isComplete = user.role === 'recruiter' || Boolean(profile && profile.skills?.length > 0);
+
+    res.status(200).json({
+      token,
+      user: {
+        email: user.email,
+        role: user.role,
+        isComplete,
+        fullName: profile?.fullName,
+        contactPhone: profile?.contactPhone,
+        skills: profile?.skills,
+        isOnline: profile?.isOnline,
+        averageRating: profile?.rating,
+        reviewCount: profile?.reviewCount
+      }
+    });
+  } catch (err) {
+    console.error("Error in /login:", err);
+    res.status(500).json({ message: "Error logging in" });
   }
 });
 

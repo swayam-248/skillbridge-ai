@@ -3,6 +3,8 @@ const Skill = require('./models/Skills');
 const fs = require('fs');
 const path = require('path');
 
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/skillbridge';
 
 mongoose.connect(MONGO_URI)
