@@ -13,21 +13,45 @@ const StatusToggle = ({ initialStatus = false, onStatusChange }) => {
 
   const toggleStatus = async () => {
     setLoading(true);
-    try {
-      const token = sessionStorage.getItem('token');
-      const newStatus = !isOnline;
-      await axios.put(
-        `${API_BASE_URL}/api/profile/status`,
-        { isOnline: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
+    const token = sessionStorage.getItem('token');
+    const newStatus = !isOnline;
+
+    const sendUpdateRequest = async (payload) => {
+      try {
+        await axios.put(
+          `${API_BASE_URL}/api/profile/status`,
+          payload,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setIsOnline(newStatus);
+        if (onStatusChange) onStatusChange(newStatus);
+      } catch (error) {
+        console.error('Error toggling status', error);
+        alert('Failed to update status.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // If worker is going online, try to capture their real GPS coordinates
+    if (newStatus && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          sendUpdateRequest({
+            isOnline: true,
+            location: {
+              coordinates: [pos.coords.longitude, pos.coords.latitude]
+            }
+          });
+        },
+        () => {
+          // Fallback if permission denied
+          sendUpdateRequest({ isOnline: true });
+        },
+        { timeout: 5000 }
       );
-      setIsOnline(newStatus);
-      if (onStatusChange) onStatusChange(newStatus);
-    } catch (error) {
-      console.error('Error toggling status', error);
-      alert('Failed to update status.');
-    } finally {
-      setLoading(false);
+    } else {
+      sendUpdateRequest({ isOnline: newStatus });
     }
   };
 
@@ -50,8 +74,8 @@ const StatusToggle = ({ initialStatus = false, onStatusChange }) => {
           </p>
           <p className="text-xs text-slate-500">
             {isOnline
-              ? 'Recruiters can discover you in real time'
-              : 'Toggle online to receive booking requests'}
+              ? 'Recruiters can discover your live location on the radar'
+              : 'Toggle online to broadcast your location & receive requests'}
           </p>
         </div>
       </div>

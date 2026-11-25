@@ -2,19 +2,22 @@
  * Booking State Machine & Transition Rules
  *
  * State flow:
- *   pending ──(accept)──> accepted ──(complete)──> completed
- *      │                     │
- *   (cancel)              (cancel)
- *      │                     │
- *      ▼                     ▼
- *   cancelled             cancelled
+ *   pending ──(accept)──> accepted ──(start with OTP)──> in_progress ──(complete)──> completed
+ *      │                     │                              │
+ *      │                     └───(direct complete)─────────┤
+ *      │                     │                              │
+ *   (cancel)              (cancel)                       (cancel)
+ *      │                     │                              │
+ *      ▼                     ▼                              ▼
+ *   cancelled             cancelled                      cancelled
  *
  * Terminal states: 'completed' and 'cancelled' cannot transition to any other status.
  */
 
 const VALID_BOOKING_TRANSITIONS = {
   pending: ['accepted', 'cancelled'],
-  accepted: ['completed', 'cancelled'],
+  accepted: ['in_progress', 'completed', 'cancelled'],
+  in_progress: ['completed', 'cancelled'],
   completed: [],
   cancelled: []
 };

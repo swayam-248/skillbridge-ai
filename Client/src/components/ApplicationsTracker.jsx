@@ -80,12 +80,12 @@ const ApplicationsTracker = ({ userRole }) => {
     }
   };
 
-  const handleBookingSubmit = async (workerId, jobDescription) => {
+  const handleBookingSubmit = async (workerId, jobDescription, serviceAddress, totalAmount, location) => {
     try {
       const token = sessionStorage.getItem("token");
       await axios.post(
         `${API_BASE_URL}/api/bookings`,
-        { workerId, jobDescription },
+        { workerId, jobDescription, serviceAddress, totalAmount, location },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       alert("Direct booking request sent to candidate!");

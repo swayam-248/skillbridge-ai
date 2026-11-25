@@ -4,20 +4,24 @@ import { matchSkills } from "../../services/nlpService";
 
 export default function OnboardingView({
   user,
-  userName,
-  setUserName,
-  userPhone,
-  setUserPhone,
-  isListening,
+  userName = "",
+  setUserName = () => {},
+  userPhone = "",
+  setUserPhone = () => {},
+  isListening = false,
   toggleListen,
-  input,
-  foundSkills,
-  setFoundSkills,
+  input = "",
+  foundSkills = [],
+  setFoundSkills = () => {},
   dbSkills = [],
-  handleSaveProfile,
-  saveStatus,
+  handleSaveProfile = () => {},
+  saveStatus = "",
 }) {
   const [typedInput, setTypedInput] = useState("");
+
+  const safePhone = typeof userPhone === "string" ? userPhone : (userPhone ? String(userPhone) : "");
+  const safeName = typeof userName === "string" ? userName : (userName ? String(userName) : "");
+  const safeSkills = Array.isArray(foundSkills) ? foundSkills : [];
 
   const handleManualExtract = () => {
     if (!typedInput.trim() || !dbSkills.length) return;
@@ -25,12 +29,12 @@ export default function OnboardingView({
     if (newMatched.length > 0 && setFoundSkills) {
       setFoundSkills((prev) => {
         const existingTitles = new Set(
-          prev.map((s) => (typeof s === "string" ? s : s.professional_title))
+          (Array.isArray(prev) ? prev : []).map((s) => (typeof s === "string" ? s : s?.professional_title || ""))
         );
         const unique = newMatched.filter(
           (s) => !existingTitles.has(s.professional_title)
         );
-        return [...prev, ...unique];
+        return [...(Array.isArray(prev) ? prev : []), ...unique];
       });
       setTypedInput("");
     }
@@ -38,7 +42,7 @@ export default function OnboardingView({
 
   const handleRemoveSkill = (indexToRemove) => {
     if (setFoundSkills) {
-      setFoundSkills((prev) => prev.filter((_, i) => i !== indexToRemove));
+      setFoundSkills((prev) => (Array.isArray(prev) ? prev : []).filter((_, i) => i !== indexToRemove));
     }
   };
 
@@ -64,7 +68,7 @@ export default function OnboardingView({
               <input
                 type="text"
                 required
-                value={userName}
+                value={safeName}
                 onChange={(e) => setUserName(e.target.value)}
                 placeholder="Enter your full name"
                 className="glass-input"
@@ -82,7 +86,7 @@ export default function OnboardingView({
                 <input
                   type="tel"
                   required
-                  value={userPhone.startsWith('+91') ? userPhone.slice(3) : userPhone}
+                  value={safePhone.startsWith('+91') ? safePhone.slice(3) : safePhone}
                   onChange={(e) => setUserPhone('+91' + e.target.value.replace(/\D/g, ''))}
                   placeholder="98765 43210"
                   className="glass-input pl-12"
@@ -142,14 +146,14 @@ export default function OnboardingView({
                 {input && (
                   <p className="text-blue-800 text-xs mb-3 italic font-semibold">"{input}"</p>
                 )}
-                {foundSkills.length > 0 ? (
+                {safeSkills.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {foundSkills.map((s, i) => (
+                    {safeSkills.map((s, i) => (
                       <span
                         key={i}
                         className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-lg text-xs font-bold"
                       >
-                        <span>✓ {typeof s === 'string' ? s : s.professional_title}</span>
+                        <span>✓ {typeof s === 'string' ? s : s?.professional_title || "Skill"}</span>
                         <button
                           type="button"
                           onClick={() => handleRemoveSkill(i)}
@@ -188,4 +192,3 @@ export default function OnboardingView({
     </div>
   );
 }
-

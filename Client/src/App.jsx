@@ -12,7 +12,10 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthContext } from "./context/AuthContext";
 import ProfileDetail from "./pages/ProfileDetails";
 import BookingModal from "./components/BookingModal";
+import IncomingJobModal from "./components/IncomingJobModal";
 import BookingsDashboard from "./components/BookingsDashboard";
+import LiveJobTrackerModal from "./components/LiveJobTrackerModal";
+import BookingChatModal from "./components/BookingChatModal";
 import Sidebar from "./components/Sidebar";
 import JobsBoard from "./components/JobsBoard";
 import ApplicationsTracker from "./components/ApplicationsTracker";
@@ -22,6 +25,7 @@ import WorkerProfileView from "./pages/dashboard/WorkerProfileView";
 import VoiceStudioView from "./pages/dashboard/VoiceStudioView";
 import RecruiterDashboard from "./pages/dashboard/RecruiterDashboard";
 import { API_BASE_URL } from "./utils/api";
+import { useSocket } from "./context/SocketContext";
 
 function App() {
   const [input, setInput] = useState("");
@@ -43,8 +47,118 @@ function App() {
   const [workerReviews, setWorkerReviews] = useState([]);
   const [workerRating, setWorkerRating] = useState({ avg: 0, count: 0 });
   const [selectedWorkerForBooking, setSelectedWorkerForBooking] = useState(null);
+  const [recruiterLocation, setRecruiterLocation] = useState(() => {
+    try {
+      const saved = localStorage.getItem('skillbridge_user_location');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      // ignore
+    }
+    return [28.6139, 77.2090];
+  });
+  const [activeTripBooking, setActiveTripBooking] = useState(null);
+  const [activeTrackingModal, setActiveTrackingModal] = useState(null);
+  const [activeChatModal, setActiveChatModal] = useState(null);
+
+  const handleUpdateRecruiterLocation = (coords) => {
+    setRecruiterLocation(coords);
+    try {
+      localStorage.setItem('skillbridge_user_location', JSON.stringify(coords));
+    } catch (e) {
+      // ignore
+    }
+  };
 
   const { user, login, token: contextToken } = useContext(AuthContext);
+  const {
+    incomingDispatch,
+    setIncomingDispatch,
+    workerStatusEvent,
+    reviewReceivedEvent,
+    lastStatusUpdate,
+    newBookingEvent
+  } = useSocket() || {};
+
+  // Fetch active bookings on load or user change
+  const fetchActiveTripBooking = async () => {
+    try {
+      const token = sessionStorage.getItem("token");
+      if (!token || !user) return;
+      const res = await axios.get(`${API_BASE_URL}/api/bookings`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (Array.isArray(res.data)) {
+        const active = res.data.find(
+          (b) => b.status === "accepted" || b.status === "in_progress"
+        );
+        setActiveTripBooking(active || null);
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    fetchActiveTripBooking();
+  }, [user]);
+
+  // Synchronize active trip on real-time status changes
+  useEffect(() => {
+    if (lastStatusUpdate && lastStatusUpdate._id) {
+      if (lastStatusUpdate.status === "accepted" || lastStatusUpdate.status === "in_progress") {
+        setActiveTripBooking(lastStatusUpdate);
+      } else if (lastStatusUpdate.status === "completed" || lastStatusUpdate.status === "cancelled") {
+        setActiveTripBooking((prev) => (prev?._id === lastStatusUpdate._id ? null : prev));
+        setActiveTrackingModal((prev) => (prev?._id === lastStatusUpdate._id ? null : prev));
+        setActiveChatModal((prev) => (prev?._id === lastStatusUpdate._id ? null : prev));
+      }
+    }
+  }, [lastStatusUpdate]);
+
+  // Synchronize on new booking event
+  useEffect(() => {
+    if (newBookingEvent && (newBookingEvent.status === "accepted" || newBookingEvent.status === "in_progress")) {
+      setActiveTripBooking(newBookingEvent);
+    }
+  }, [newBookingEvent]);
+
+  // Real-time synchronization: When any worker goes Online / Offline, update talent pool & map immediately
+  useEffect(() => {
+    if (workerStatusEvent && workerStatusEvent.userId) {
+      setAllProfiles((prev) =>
+        prev.map((p) => {
+          const profUserId = p.user?._id || p.user || p._id;
+          if (String(profUserId) === String(workerStatusEvent.userId)) {
+            return {
+              ...p,
+              isOnline: workerStatusEvent.isOnline,
+              location: workerStatusEvent.profile?.location || p.location
+            };
+          }
+          return p;
+        })
+      );
+    }
+  }, [workerStatusEvent]);
+
+  // Real-time synchronization: When a worker receives a review, update rating live without refreshing
+  useEffect(() => {
+    if (reviewReceivedEvent && user?.role === "worker") {
+      setWorkerRating({
+        avg: String(reviewReceivedEvent.newRating || "5.0"),
+        count: reviewReceivedEvent.reviewCount || 1
+      });
+      setWorkerReviews((prev) => [
+        {
+          _id: Math.random().toString(),
+          rating: reviewReceivedEvent.rating,
+          comment: reviewReceivedEvent.comment,
+          createdAt: new Date().toISOString()
+        },
+        ...prev
+      ]);
+    }
+  }, [reviewReceivedEvent, user?.role]);
 
   // Set initial view based on role
   useEffect(() => {
@@ -203,19 +317,30 @@ function App() {
     }
   }, [user?.email]);
 
-  const handleBookingSubmit = async (workerId, jobDescription) => {
+  const handleBookingSubmit = async (workerId, jobDescription, serviceAddress, totalAmount, location) => {
     try {
       const token = sessionStorage.getItem("token");
+      const locPayload = location || (recruiterLocation && recruiterLocation.length === 2
+        ? { type: 'Point', coordinates: [recruiterLocation[1], recruiterLocation[0]] } // [lng, lat]
+        : undefined);
+
       await axios.post(
         `${API_BASE_URL}/api/bookings`,
-        { workerId, jobDescription },
+        {
+          workerId,
+          jobDescription,
+          serviceAddress,
+          totalAmount,
+          location: locPayload
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert("Booking request sent successfully! Worker has been notified.");
+      alert("⚡ Booking dispatched! Worker has been alerted in real time with a 30s countdown.");
       setSelectedWorkerForBooking(null);
+      setCurrentView("bookings");
     } catch (err) {
       console.error(err);
-      alert("Error sending booking request.");
+      alert(err.response?.data?.message || "Error sending booking request.");
     }
   };
 
@@ -302,21 +427,22 @@ function App() {
     }
   };
 
-  const groupedSkills = foundSkills.reduce((acc, skill) => {
+  const groupedSkills = (Array.isArray(foundSkills) ? foundSkills : []).reduce((acc, skill) => {
+    if (!skill) return acc;
     const category =
-      (typeof skill === "object" ? skill.category : null) || "Trade Services";
+      (typeof skill === "object" && skill.category ? skill.category : null) || "Trade Services";
     if (!acc[category]) acc[category] = [];
     acc[category].push(skill);
     return acc;
   }, {});
 
   const downloadProfile = () => {
-    if (foundSkills.length === 0) return;
-    const profileText = Object.entries(groupedSkills)
+    if (!Array.isArray(foundSkills) || foundSkills.length === 0) return;
+    const profileText = Object.entries(groupedSkills || {})
       .map(
         ([category, skills]) =>
-          `[${category.toUpperCase()}]\n${skills
-            .map((s) => `- ${typeof s === "string" ? s : s.professional_title}`)
+          `[${category.toUpperCase()}]\n${(Array.isArray(skills) ? skills : [])
+            .map((s) => `- ${typeof s === "string" ? s : s?.professional_title || "Skill"}`)
             .join("\n")}\n`
       )
       .join("\n");
@@ -324,11 +450,11 @@ function App() {
     const resumeContent = `====================================
 SKILLBRIDGE AI — VERIFIED WORKER PROFILE
 ====================================
-Name: ${userName}
-Contact: ${userPhone}
+Name: ${userName || "Professional Worker"}
+Contact: ${userPhone || "N/A"}
 Email: ${user?.email || "N/A"}
-Average Rating: ${workerRating.avg || "0.0"} / 5.0 (${workerRating.count || 0} reviews)
-Completed Jobs: ${workerHistory.length}
+Average Rating: ${workerRating?.avg || "0.0"} / 5.0 (${workerRating?.count || 0} reviews)
+Completed Jobs: ${(Array.isArray(workerHistory) ? workerHistory : []).length}
 
 BIO & SUMMARY:
 ${userBio || "Experienced trade and practical labor professional."}
@@ -341,7 +467,7 @@ Generated via SkillBridge AI Marketplace
     const element = document.createElement("a");
     const file = new Blob([resumeContent], { type: "text/plain" });
     element.href = URL.createObjectURL(file);
-    element.download = `${userName.replace(/\s+/g, "_")}_SkillBridge_Profile.txt`;
+    element.download = `${(userName || "profile").replace(/\s+/g, "_")}_SkillBridge_Profile.txt`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
@@ -349,21 +475,24 @@ Generated via SkillBridge AI Marketplace
 
   const filteredProfiles = Array.isArray(allProfiles)
     ? allProfiles.filter((profile) => {
+        if (!profile) return false;
         if (!searchTerm) return true;
         const q = searchTerm.toLowerCase();
         const matchesName = (
           profile.fullName ||
           profile.name ||
-          profile.user?.email
+          profile.user?.email ||
+          ""
         )
-          ?.toLowerCase()
+          .toLowerCase()
           .includes(q);
         const matchesSkills =
           Array.isArray(profile.skills) &&
           profile.skills.some((skill) => {
+            if (!skill) return false;
             const title =
-              typeof skill === "string" ? skill : skill.professional_title || skill.title;
-            return title?.toLowerCase().includes(q);
+              typeof skill === "string" ? skill : skill.professional_title || skill.title || "";
+            return title.toLowerCase().includes(q);
           });
         return matchesName || matchesSkills;
       })
@@ -483,6 +612,8 @@ Generated via SkillBridge AI Marketplace
                               loading={loading}
                               allProfiles={allProfiles}
                               setSelectedWorkerForBooking={setSelectedWorkerForBooking}
+                              userLocation={recruiterLocation}
+                              setUserLocation={handleUpdateRecruiterLocation}
                             />
                           )}
                           {currentView === "jobs" && <JobsBoard userRole="recruiter" />}
@@ -501,6 +632,129 @@ Generated via SkillBridge AI Marketplace
                           onClose={() => setSelectedWorkerForBooking(null)}
                           onSubmit={handleBookingSubmit}
                           initialDescription={problemText}
+                          userLocation={recruiterLocation}
+                        />
+                      )}
+
+                      {incomingDispatch && (
+                        <IncomingJobModal
+                          dispatchData={incomingDispatch}
+                          onClose={() => setIncomingDispatch && setIncomingDispatch(null)}
+                          onAccepted={(acceptedBooking) => {
+                            setCurrentView("bookings");
+                            if (acceptedBooking) {
+                              setActiveTripBooking(acceptedBooking);
+                              setActiveTrackingModal(acceptedBooking);
+                            }
+                          }}
+                        />
+                      )}
+
+                      {/* Uber-Style Persistent Active Trip Floating HUD */}
+                      {activeTripBooking && (
+                        <aside aria-label="Active Trip Status" className="fixed bottom-4 left-4 right-4 md:left-72 md:right-8 z-40 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-3xl border border-blue-500/30 bg-slate-900/95 p-3.5 sm:px-6 text-white shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom-5 duration-300">
+                          <div className="flex items-center gap-3.5 min-w-0 w-full sm:w-auto">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 font-bold text-xl shadow-md shadow-blue-500/30">
+                              {user?.role === "worker" ? "🧭" : "🚙"}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-blue-400">
+                                  {user?.role === "worker" ? "Active Job En Route" : "Specialist En Route"}
+                                </span>
+                                <span className="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[9px] font-bold text-emerald-400 border border-emerald-500/30">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                  Live Trip
+                                </span>
+                                {activeTripBooking.status === "in_progress" && (
+                                  <span className="badge badge-indigo text-[9px] bg-indigo-500/20 text-indigo-300 border-indigo-500/30">
+                                    🛠️ Work In Progress
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs font-bold text-white truncate max-w-sm mt-0.5">
+                                {user?.role === "worker"
+                                  ? `📍 Destination: ${activeTripBooking.serviceAddress || "Customer Doorstep"}`
+                                  : activeTripBooking.jobDescription}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto justify-end">
+                            {user?.role === "recruiter" && activeTripBooking.status === "accepted" && (
+                              <div className="flex items-center gap-1.5 rounded-xl bg-slate-800 px-3 py-1.5 border border-slate-700 text-xs">
+                                <span className="text-slate-400 text-[10px] uppercase font-bold">OTP:</span>
+                                <span className="font-mono font-black text-blue-400 tracking-wider">
+                                  {activeTripBooking.startOtp || "4821"}
+                                </span>
+                              </div>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => setActiveTrackingModal(activeTripBooking)}
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 px-3.5 py-2 text-xs font-bold text-white hover:from-blue-700 hover:to-indigo-800 transition shadow-sm shadow-blue-500/25"
+                            >
+                              <span>{user?.role === "worker" ? "🧭 Driver Navigation Map" : "🗺️ Track Pro Live"}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setActiveChatModal(activeTripBooking)}
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 text-xs font-bold text-slate-200 transition"
+                            >
+                              <span>💬 Chat</span>
+                            </button>
+                          </div>
+                        </aside>
+                      )}
+
+                      {/* Live GPS Tracker / Driver Navigation Modal */}
+                      {activeTrackingModal && (
+                        <LiveJobTrackerModal
+                          booking={activeTrackingModal}
+                          currentUserRole={user?.role}
+                          onClose={() => setActiveTrackingModal(null)}
+                          onStartJobWithOtp={async (bookingId, otpCode) => {
+                            try {
+                              const token = sessionStorage.getItem("token");
+                              const res = await axios.put(
+                                `${API_BASE_URL}/api/bookings/${bookingId}/status`,
+                                { status: "in_progress", otp: otpCode },
+                                { headers: { Authorization: `Bearer ${token}` } }
+                              );
+                              setActiveTripBooking(res.data);
+                              return { success: true };
+                            } catch (err) {
+                              return {
+                                success: false,
+                                message: err.response?.data?.message || "Invalid OTP code",
+                              };
+                            }
+                          }}
+                          onCompleteJob={async (bookingId) => {
+                            try {
+                              const token = sessionStorage.getItem("token");
+                              await axios.put(
+                                `${API_BASE_URL}/api/bookings/${bookingId}/status`,
+                                { status: "completed" },
+                                { headers: { Authorization: `Bearer ${token}` } }
+                              );
+                              setActiveTrackingModal(null);
+                              setActiveTripBooking(null);
+                            } catch (err) {
+                              console.error(err);
+                            }
+                          }}
+                        />
+                      )}
+
+                      {/* Real-time In-App Live Chat Modal */}
+                      {activeChatModal && (
+                        <BookingChatModal
+                          booking={activeChatModal}
+                          currentUser={{ role: user?.role }}
+                          onClose={() => setActiveChatModal(null)}
                         />
                       )}
                     </main>

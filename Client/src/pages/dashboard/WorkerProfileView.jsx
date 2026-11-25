@@ -3,42 +3,51 @@ import StatusToggle from "../../components/StatusToggle";
 import { getCategoryStyle } from "../../utils/categoryStyles";
 
 const WorkerProfileView = ({
-  userStatus,
+  userStatus = false,
   onStatusChange,
-  userName,
-  setUserName,
-  userPhone,
-  setUserPhone,
-  userBio,
-  setUserBio,
-  handleSaveProfile,
-  saveStatus,
-  foundSkills,
-  setFoundSkills,
-  groupedSkills,
-  downloadProfile,
-  workerRating,
-  workerHistory,
-  workerReviews,
-  userEmail,
+  userName = "",
+  setUserName = () => {},
+  userPhone = "",
+  setUserPhone = () => {},
+  userBio = "",
+  setUserBio = () => {},
+  handleSaveProfile = () => {},
+  saveStatus = "",
+  foundSkills = [],
+  setFoundSkills = () => {},
+  groupedSkills = {},
+  downloadProfile = () => {},
+  workerRating = { avg: "0.0", count: 0 },
+  workerHistory = [],
+  workerReviews = [],
+  userEmail = "",
   switchToVoiceStudio,
   dbSkills = [],
 }) => {
   const [activeTab, setActiveTab] = useState("skills");
   const [customSkill, setCustomSkill] = useState("");
 
-  const initial = userName?.[0] || userEmail?.[0]?.toUpperCase() || "W";
+  const safeSkills = Array.isArray(foundSkills) ? foundSkills : [];
+  const safeHistory = Array.isArray(workerHistory) ? workerHistory : [];
+  const safeReviews = Array.isArray(workerReviews) ? workerReviews : [];
+  const safeGrouped = groupedSkills && typeof groupedSkills === "object" ? groupedSkills : {};
+  const safePhone = typeof userPhone === "string" ? userPhone : (userPhone ? String(userPhone) : "");
+  const safeName = typeof userName === "string" ? userName : (userName ? String(userName) : "");
+  const safeRatingAvg = workerRating?.avg || "0.0";
+  const safeRatingCount = Number(workerRating?.count) || 0;
+
+  const initial = safeName?.[0] || userEmail?.[0]?.toUpperCase() || "W";
 
   const handleAddCustomSkill = (e) => {
     e.preventDefault();
     if (!customSkill.trim()) return;
     const trimmed = customSkill.trim();
-    if (foundSkills.some((s) => (typeof s === "string" ? s : s.professional_title).toLowerCase() === trimmed.toLowerCase())) {
+    if (safeSkills.some((s) => (typeof s === "string" ? s : s?.professional_title || "").toLowerCase() === trimmed.toLowerCase())) {
       alert("This skill is already in your portfolio.");
       return;
     }
     setFoundSkills((prev) => [
-      ...prev,
+      ...(Array.isArray(prev) ? prev : []),
       { professional_title: trimmed, category: "Trade Services" },
     ]);
     setCustomSkill("");
@@ -46,7 +55,7 @@ const WorkerProfileView = ({
 
   const handleRemoveSkill = (skillTitle) => {
     setFoundSkills((prev) =>
-      prev.filter((s) => (typeof s === "string" ? s : s.professional_title) !== skillTitle)
+      (Array.isArray(prev) ? prev : []).filter((s) => (typeof s === "string" ? s : s?.professional_title) !== skillTitle)
     );
   };
 
@@ -63,8 +72,8 @@ const WorkerProfileView = ({
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
-      {/* Hero Overview Banner (Crisp White Card with subtle gradient accent) */}
-      <div className="glass-card p-8 relative overflow-hidden bg-white border border-slate-200">
+      {/* Hero Overview Banner */}
+      <div className="glass-card p-8 relative overflow-hidden bg-white border border-slate-200 shadow-xs rounded-3xl">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           {/* Avatar & Identity */}
           <div className="flex items-center gap-5">
@@ -80,13 +89,13 @@ const WorkerProfileView = ({
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="font-display text-2xl md:text-3xl font-extrabold text-slate-900">
-                  {userName || "Professional Worker"}
+                  {safeName || "Professional Worker"}
                 </h1>
                 <span className="badge badge-blue">Verified Laborer</span>
               </div>
               <p className="text-xs text-slate-500 mt-1">{userEmail}</p>
-              {userPhone && (
-                <p className="text-xs text-slate-600 mt-0.5 font-medium">📞 {userPhone}</p>
+              {safePhone && (
+                <p className="text-xs text-slate-600 mt-0.5 font-medium">📞 {safePhone}</p>
               )}
             </div>
           </div>
@@ -97,7 +106,7 @@ const WorkerProfileView = ({
               <StatusToggle initialStatus={userStatus} onStatusChange={onStatusChange} />
             </div>
 
-            {foundSkills.length > 0 && (
+            {safeSkills.length > 0 && (
               <button
                 type="button"
                 onClick={downloadProfile}
@@ -119,10 +128,10 @@ const WorkerProfileView = ({
             <div className="mt-1 flex items-center gap-1.5">
               <span className="text-amber-500 text-lg">★</span>
               <strong className="font-display text-2xl font-black text-slate-900">
-                {workerRating.avg || "0.0"}
+                {safeRatingAvg}
               </strong>
               <span className="text-xs text-slate-500 font-medium">
-                ({workerRating.count || 0})
+                ({safeRatingCount})
               </span>
             </div>
           </div>
@@ -132,7 +141,7 @@ const WorkerProfileView = ({
               Completed Jobs
             </span>
             <strong className="mt-1 block font-display text-2xl font-black text-slate-900">
-              {workerHistory.length}
+              {safeHistory.length}
             </strong>
           </div>
 
@@ -141,7 +150,7 @@ const WorkerProfileView = ({
               Verified Skills
             </span>
             <strong className="mt-1 block font-display text-2xl font-black text-slate-900">
-              {foundSkills.length}
+              {safeSkills.length}
             </strong>
           </div>
 
@@ -165,13 +174,13 @@ const WorkerProfileView = ({
         </div>
       </div>
 
-      {/* Clean Tabbed Navigation */}
+      {/* Tabbed Navigation */}
       <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
         {[
-          { id: "skills", label: `Skills & Portfolio (${foundSkills.length})`, icon: "🎯" },
+          { id: "skills", label: `Skills & Portfolio (${safeSkills.length})`, icon: "🎯" },
           { id: "contact", label: "Profile & Bio Settings", icon: "⚙️" },
-          { id: "reviews", label: `Reviews & Feedback (${workerRating.count || 0})`, icon: "★" },
-          { id: "history", label: `Work History (${workerHistory.length})`, icon: "📜" },
+          { id: "reviews", label: `Reviews & Feedback (${safeRatingCount})`, icon: "★" },
+          { id: "history", label: `Work History (${safeHistory.length})`, icon: "📜" },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -192,7 +201,7 @@ const WorkerProfileView = ({
       {/* Tab 1: Skills & Portfolio */}
       {activeTab === "skills" && (
         <div className="space-y-6">
-          <div className="glass-card p-7 space-y-6 bg-white border border-slate-200">
+          <div className="glass-card p-7 space-y-6 bg-white border border-slate-200 rounded-3xl shadow-xs">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
               <div>
                 <h2 className="font-display text-xl font-bold text-slate-900">
@@ -229,17 +238,17 @@ const WorkerProfileView = ({
             </form>
 
             {/* Grouped Skills Display */}
-            {Object.keys(groupedSkills).length > 0 ? (
+            {Object.keys(safeGrouped).length > 0 ? (
               <div className="space-y-6">
-                {Object.entries(groupedSkills).map(([category, skills]) => (
+                {Object.entries(safeGrouped).map(([category, skills]) => (
                   <div key={category} className="space-y-3">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                      {category || "Trade Services"} ({skills.length})
+                      {category || "Trade Services"} ({(Array.isArray(skills) ? skills : []).length})
                     </span>
                     <div className="flex flex-wrap gap-2.5">
-                      {skills.map((skill, index) => {
+                      {(Array.isArray(skills) ? skills : []).map((skill, index) => {
                         const title =
-                          typeof skill === "string" ? skill : skill.professional_title;
+                          typeof skill === "string" ? skill : skill?.professional_title || "Skill";
 
                         return (
                           <div
@@ -295,9 +304,9 @@ const WorkerProfileView = ({
                     key={i}
                     type="button"
                     onClick={() => {
-                      if (!foundSkills.some((s) => (typeof s === "string" ? s : s.professional_title) === sug)) {
+                      if (!safeSkills.some((s) => (typeof s === "string" ? s : s?.professional_title) === sug)) {
                         setFoundSkills((prev) => [
-                          ...prev,
+                          ...(Array.isArray(prev) ? prev : []),
                           { professional_title: sug, category: "Trade Services" },
                         ]);
                       }
@@ -331,7 +340,7 @@ const WorkerProfileView = ({
 
       {/* Tab 2: Profile & Bio Settings */}
       {activeTab === "contact" && (
-        <div className="glass-card p-8 max-w-2xl bg-white border border-slate-200">
+        <div className="glass-card p-8 max-w-2xl bg-white border border-slate-200 rounded-3xl shadow-xs">
           <h2 className="font-display text-xl font-bold text-slate-900 mb-1">
             Personal & Contact Settings
           </h2>
@@ -347,7 +356,7 @@ const WorkerProfileView = ({
               <input
                 type="text"
                 required
-                value={userName}
+                value={safeName}
                 onChange={(e) => setUserName(e.target.value)}
                 placeholder="e.g. Swayam Sahore"
                 className="glass-input"
@@ -365,7 +374,7 @@ const WorkerProfileView = ({
                 <input
                   type="tel"
                   required
-                  value={userPhone.startsWith("+91") ? userPhone.slice(3) : userPhone}
+                  value={safePhone.startsWith("+91") ? safePhone.slice(3) : safePhone}
                   onChange={(e) => setUserPhone("+91" + e.target.value.replace(/\D/g, ""))}
                   placeholder="98765 43210"
                   className="glass-input pl-12"
@@ -403,7 +412,7 @@ const WorkerProfileView = ({
 
       {/* Tab 3: Reviews & Reputation */}
       {activeTab === "reviews" && (
-        <div className="glass-card p-8 bg-white border border-slate-200">
+        <div className="glass-card p-8 bg-white border border-slate-200 rounded-3xl shadow-xs">
           <div className="flex items-center justify-between border-b border-slate-100 pb-5 mb-6">
             <div>
               <h2 className="font-display text-xl font-bold text-slate-900">
@@ -416,34 +425,37 @@ const WorkerProfileView = ({
             <div className="flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2">
               <span className="text-amber-500 text-lg">★</span>
               <strong className="font-display text-2xl font-black text-amber-800">
-                {workerRating.avg || "0.0"}
+                {safeRatingAvg}
               </strong>
               <span className="text-xs text-slate-500 font-medium">/ 5.0</span>
             </div>
           </div>
 
-          {workerReviews.length > 0 ? (
+          {safeReviews.length > 0 ? (
             <div className="space-y-4">
-              {workerReviews.map((rev) => (
-                <div key={rev._id} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-amber-500 text-sm font-black">
-                      {"★".repeat(rev.rating)}
-                      <span className="text-slate-300">
-                        {"★".repeat(Math.max(0, 5 - rev.rating))}
+              {safeReviews.map((rev) => {
+                const score = Math.min(5, Math.max(0, Math.floor(Number(rev?.rating) || 5)));
+                return (
+                  <div key={rev?._id || Math.random()} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-amber-500 text-sm font-black">
+                        {"★".repeat(score)}
+                        <span className="text-slate-300">
+                          {"★".repeat(Math.max(0, 5 - score))}
+                        </span>
                       </span>
-                    </span>
-                    <span className="text-xs text-slate-500">
-                      {new Date(rev.createdAt).toLocaleDateString()}
-                    </span>
+                      <span className="text-xs text-slate-500">
+                        {rev?.createdAt ? new Date(rev.createdAt).toLocaleDateString() : "Recent"}
+                      </span>
+                    </div>
+                    {rev?.comment && (
+                      <p className="text-xs text-slate-700 mt-3 leading-relaxed">
+                        "{rev.comment}"
+                      </p>
+                    )}
                   </div>
-                  {rev.comment && (
-                    <p className="text-xs text-slate-700 mt-3 leading-relaxed">
-                      "{rev.comment}"
-                    </p>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-10 text-center">
@@ -459,7 +471,7 @@ const WorkerProfileView = ({
 
       {/* Tab 4: Work History */}
       {activeTab === "history" && (
-        <div className="glass-card p-8 bg-white border border-slate-200">
+        <div className="glass-card p-8 bg-white border border-slate-200 rounded-3xl shadow-xs">
           <div className="border-b border-slate-100 pb-5 mb-6">
             <h2 className="font-display text-xl font-bold text-slate-900">
               Completed Job History
@@ -469,19 +481,23 @@ const WorkerProfileView = ({
             </p>
           </div>
 
-          {workerHistory.length > 0 ? (
+          {safeHistory.length > 0 ? (
             <div className="space-y-4">
-              {workerHistory.map((job) => (
-                <div key={job._id} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
+              {safeHistory.map((job) => (
+                <div key={job?._id || Math.random()} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
                   <div className="flex items-start justify-between">
                     <h3 className="font-bold text-slate-900 text-sm">
-                      {job.jobDescription}
+                      {job?.jobDescription || "Job Assignment"}
                     </h3>
                     <span className="badge badge-emerald">Completed</span>
                   </div>
                   <div className="mt-3 flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-200/80">
-                    <span>Recruiter: {job.recruiter?.email || "SkillBridge Client"}</span>
-                    <span>{new Date(job.completedAt || job.createdAt).toLocaleDateString()}</span>
+                    <span>Recruiter: {job?.recruiter?.email || "SkillBridge Client"}</span>
+                    <span>
+                      {job?.completedAt || job?.createdAt
+                        ? new Date(job.completedAt || job.createdAt).toLocaleDateString()
+                        : "Completed"}
+                    </span>
                   </div>
                 </div>
               ))}

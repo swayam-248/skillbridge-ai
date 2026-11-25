@@ -3,6 +3,7 @@ import Soundwave from '../../components/Soundwave';
 import { SkeletonGrid } from '../../components/SkeletonCard';
 import { getCategoryStyle } from '../../utils/categoryStyles';
 import { Link } from 'react-router-dom';
+import RadarMap, { getDistanceKm } from '../../components/RadarMap';
 
 function RecruiterDashboard({
   isListening,
@@ -15,9 +16,16 @@ function RecruiterDashboard({
   loading,
   allProfiles,
   setSelectedWorkerForBooking,
+  userLocation: propUserLocation,
+  setUserLocation: propSetUserLocation,
 }) {
   const [onlineOnly, setOnlineOnly] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [viewMode, setViewMode] = useState("grid"); // 'grid' | 'map'
+  const [internalLocation, setInternalLocation] = useState([28.6139, 77.2090]); // Default: New Delhi
+  const userLocation = propUserLocation || internalLocation;
+  const setUserLocation = propSetUserLocation || setInternalLocation;
+  const [radiusKm, setRadiusKm] = useState(15);
 
   const categories = [
     "all",
@@ -57,7 +65,33 @@ function RecruiterDashboard({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* View Mode Switcher */}
+          <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1 border border-slate-200 mr-2">
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
+                viewMode === "grid"
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              🗂️ Cards
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("map")}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
+                viewMode === "map"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              🛰️ Radar Map
+            </button>
+          </div>
+
           <span className="badge badge-blue">
             {allProfiles.length} Total Workers
           </span>
@@ -188,8 +222,17 @@ function RecruiterDashboard({
         )}
       </div>
 
-      {/* Talent Grid */}
-      {loading ? (
+      {/* Main Content Area: Map View vs Grid View */}
+      {viewMode === "map" ? (
+        <RadarMap
+          workers={displayedProfiles}
+          onSelectWorker={setSelectedWorkerForBooking}
+          userLocation={userLocation}
+          setUserLocation={setUserLocation}
+          radiusKm={radiusKm}
+          setRadiusKm={setRadiusKm}
+        />
+      ) : loading ? (
         <SkeletonGrid count={6} />
       ) : displayedProfiles.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-16 text-center">
@@ -204,6 +247,13 @@ function RecruiterDashboard({
           {displayedProfiles.map((profile) => {
             const name = profile.fullName || profile.name || "Anonymous Worker";
             const initial = name[0] || profile.user?.email?.[0]?.toUpperCase() || "W";
+
+            // Calculate distance if coordinates exist
+            const workerLat = profile.location?.coordinates?.[1];
+            const workerLng = profile.location?.coordinates?.[0];
+            const dist = (workerLat && workerLng && userLocation)
+              ? getDistanceKm(userLocation[0], userLocation[1], workerLat, workerLng)
+              : null;
 
             return (
               <article key={profile._id} className="glass-card-hover p-6 flex flex-col justify-between bg-white border border-slate-200">
@@ -223,15 +273,27 @@ function RecruiterDashboard({
                         <h4 className="font-display font-bold text-slate-900 text-base truncate">
                           {name}
                         </h4>
-                        <p className="text-xs text-slate-500 truncate">
-                          {profile.user?.email}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-slate-500 truncate">
+                            {profile.user?.email}
+                          </p>
+                          {dist !== null && (
+                            <span className="text-[11px] font-bold text-blue-600">
+                              • {dist} km
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1 rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-1 text-amber-800">
-                      <span className="text-xs">★</span>
-                      <span className="text-xs font-black">{profile.averageRating || profile.rating || "0.0"}</span>
+                    <div className="flex flex-col items-end">
+                      <div className="flex items-center gap-1 rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-1 text-amber-800">
+                        <span className="text-xs">★</span>
+                        <span className="text-xs font-black">{profile.averageRating || profile.rating || "0.0"}</span>
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-700 mt-1">
+                        ₹{profile.hourlyRate || 299}/hr
+                      </span>
                     </div>
                   </div>
 
